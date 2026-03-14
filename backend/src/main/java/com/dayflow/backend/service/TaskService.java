@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskService {
@@ -77,9 +78,8 @@ public class TaskService {
         List<Task> dateTasks = taskRepository.findByUserIdAndDueDate(user.getId(), date);
         List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
 
-        // Reset recorrentes APENAS quando consultando hoje
-        // Nunca resetar ao visualizar outros dias na agenda
         if (date.equals(today)) {
+            // Hoje: reseta tarefas concluídas em outro dia
             recurrentTasks.forEach(task -> {
                 if (task.getCompletedAt() != null &&
                     !task.getCompletedAt().toLocalDate().equals(today)) {
@@ -88,7 +88,23 @@ public class TaskService {
                     taskRepository.save(task);
                 }
             });
+        } else if (date.isAfter(today)) {
+            // Dias futuros: mostra recorrentes sempre como não concluídas (sem salvar)
+            recurrentTasks = recurrentTasks.stream().map(task -> {
+                Task copy = new Task();
+                copy.setId(task.getId());
+                copy.setTitle(task.getTitle());
+                copy.setDescription(task.getDescription());
+                copy.setRecurrent(true);
+                copy.setCompleted(false);
+                copy.setDueTime(task.getDueTime());
+                copy.setAgendaEvent(task.isAgendaEvent());
+                copy.setRoutine(task.getRoutine());
+                copy.setUser(task.getUser());
+                return copy;
+            }).collect(Collectors.toList());
         }
+        // Dias passados: mostra o status real (como estava naquele dia)
 
         List<Task> result = new ArrayList<>(dateTasks);
         result.addAll(recurrentTasks);
