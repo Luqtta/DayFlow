@@ -6,6 +6,13 @@ import AvatarUpload from '../components/AvatarUpload'
 import UserMenu from '../components/UserMenu'
 import { User, Lock, Camera } from 'lucide-react'
 
+const BAD_WORDS = ['puta', 'merda', 'corno', 'viado', 'buceta', 'pau', 'pica', 'caralho', 'fodase', 'foda', 'cu', 'otario', 'idiota', 'imbecil', 'retardado', 'vagabunda', 'piranha', 'safada']
+
+function containsBadWord(text: string) {
+  const lower = text.toLowerCase().replace(/\s/g, '')
+  return BAD_WORDS.some(word => lower.includes(word))
+}
+
 export default function Settings() {
   const navigate = useNavigate()
   const token = localStorage.getItem('token')
@@ -45,15 +52,19 @@ export default function Settings() {
 
   const updateName = async () => {
     if (!name.trim()) { toast.error('Nome não pode ser vazio!'); return }
+    if (name.trim().length < 2) { toast.error('O nome deve ter pelo menos 2 caracteres!'); return }
+    if (name.trim().length > 16) { toast.error('O nome deve ter no máximo 16 caracteres!'); return }
+    if (containsBadWord(name)) { toast.error('Nome inválido! Use um nome apropriado.'); return }
+
     setLoadingName(true)
     try {
       const response = await fetch('https://dayflow-production-724d.up.railway.app/auth/name', {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name: name.trim() })
       })
       if (!response.ok) { toast.error('Erro ao atualizar nome!'); return }
-      localStorage.setItem('name', name)
+      localStorage.setItem('name', name.trim())
       toast.success('Nome atualizado! 🎉')
     } catch {
       toast.error('Erro ao atualizar nome!')
@@ -105,7 +116,7 @@ export default function Settings() {
     <div style={{ background: '#0f0a1e' }} className="min-h-screen flex">
       <Sidebar />
 
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col pb-20 lg:pb-0">
         <header className="flex items-center justify-between p-6 border-b border-white/10">
           <div style={fadeUp(0)}>
             <h2 className="text-white font-semibold text-lg">Configurações</h2>
@@ -114,17 +125,13 @@ export default function Settings() {
           <UserMenu />
         </header>
 
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4 sm:p-6">
           {loading ? (
             <p className="text-white/40">Carregando...</p>
           ) : (
             <div className="max-w-2xl">
 
-              {/* Card de perfil no topo */}
-              <div
-                style={fadeUp(100)}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6 flex items-center gap-6"
-              >
+              <div style={fadeUp(100)} className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6 flex items-center gap-6">
                 <div className="relative">
                   <AvatarUpload
                     currentAvatar={avatar}
@@ -145,44 +152,36 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* Tabs */}
               <div style={fadeUp(200)} className="flex gap-2 mb-6">
                 <button
                   onClick={() => setActiveTab('profile')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition
-                    ${activeTab === 'profile'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
-                    }`}
+                    ${activeTab === 'profile' ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}
                 >
-                  <User size={15} />
-                  Dados pessoais
+                  <User size={15} /> Dados pessoais
                 </button>
                 <button
                   onClick={() => setActiveTab('password')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition
-                    ${activeTab === 'password'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
-                    }`}
+                    ${activeTab === 'password' ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}
                 >
-                  <Lock size={15} />
-                  Senha
+                  <Lock size={15} /> Senha
                 </button>
               </div>
 
-              {/* Tab: Dados pessoais */}
               {activeTab === 'profile' && (
                 <div style={fadeUp(300)} className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
                   <h3 className="text-white font-semibold flex items-center gap-2">
-                    <User size={16} className="text-purple-400" />
-                    Dados pessoais
+                    <User size={16} className="text-purple-400" /> Dados pessoais
                   </h3>
                   <div>
-                    <label className="text-purple-200 text-sm mb-1 block">Nome</label>
+                    <label className="text-purple-200 text-sm mb-1 block">
+                      Nome <span className="text-white/30 text-xs">({name.length}/16)</span>
+                    </label>
                     <input
                       value={name}
-                      onChange={e => setName(e.target.value)}
+                      onChange={e => setName(e.target.value.slice(0, 16))}
+                      maxLength={16}
                       className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
                     />
                   </div>
@@ -203,12 +202,10 @@ export default function Settings() {
                 </div>
               )}
 
-              {/* Tab: Senha */}
               {activeTab === 'password' && (
                 <div style={fadeUp(300)} className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
                   <h3 className="text-white font-semibold flex items-center gap-2">
-                    <Lock size={16} className="text-purple-400" />
-                    Alterar senha
+                    <Lock size={16} className="text-purple-400" /> Alterar senha
                   </h3>
                   <div>
                     <label className="text-purple-200 text-sm mb-1 block">Senha atual</label>
@@ -241,21 +238,17 @@ export default function Settings() {
                     />
                   </div>
 
-                  {/* Indicador de força da senha */}
                   {newPassword && (
                     <div>
                       <div className="flex gap-1 mb-1">
                         {[1, 2, 3, 4].map(i => (
-                          <div
-                            key={i}
-                            className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                              newPassword.length >= i * 3
-                                ? newPassword.length >= 12 ? 'bg-green-500'
-                                : newPassword.length >= 8 ? 'bg-yellow-500'
-                                : 'bg-red-500'
-                                : 'bg-white/10'
-                            }`}
-                          />
+                          <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                            newPassword.length >= i * 3
+                              ? newPassword.length >= 12 ? 'bg-green-500'
+                              : newPassword.length >= 8 ? 'bg-yellow-500'
+                              : 'bg-red-500'
+                              : 'bg-white/10'
+                          }`} />
                         ))}
                       </div>
                       <p className="text-white/30 text-xs">

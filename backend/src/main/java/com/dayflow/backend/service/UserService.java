@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class UserService {
 
@@ -21,12 +23,39 @@ public class UserService {
     @Autowired
     private JwtService jwtService;
 
+    private static final List<String> BAD_WORDS = List.of(
+        "puta", "merda", "corno", "viado", "buceta", "caralho",
+        "fodase", "foda", "otario", "idiota", "imbecil", "retardado",
+        "vagabunda", "piranha", "safada", "pica"
+    );
+
+    private boolean containsBadWord(String text) {
+        String lower = text.toLowerCase().replaceAll("\\s", "");
+        return BAD_WORDS.stream().anyMatch(lower::contains);
+    }
+
+    private void validateName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new RuntimeException("Nome é obrigatório!");
+        }
+        if (name.trim().length() < 2) {
+            throw new RuntimeException("O nome deve ter pelo menos 2 caracteres!");
+        }
+        if (name.trim().length() > 16) {
+            throw new RuntimeException("O nome deve ter no máximo 16 caracteres!");
+        }
+        if (containsBadWord(name)) {
+            throw new RuntimeException("Nome inválido! Use um nome apropriado.");
+        }
+    }
+
     public User register(String name, String email, String password) {
+        validateName(name);
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email já cadastrado!");
         }
         User user = new User();
-        user.setName(name);
+        user.setName(name.trim());
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
         return userRepository.save(user);
@@ -58,8 +87,9 @@ public class UserService {
     }
 
     public User updateName(String email, String newName) {
+        validateName(newName);
         User user = findByEmail(email);
-        user.setName(newName);
+        user.setName(newName.trim());
         return userRepository.save(user);
     }
 

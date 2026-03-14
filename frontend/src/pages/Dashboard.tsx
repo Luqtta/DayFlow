@@ -99,9 +99,7 @@ export default function Dashboard() {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (!response.ok) return
-      setTasks(prev => prev.map(t =>
-        t.id === id ? { ...t, completed: true } : t
-      ))
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: true } : t))
       toast.success('Tarefa concluída! 🎉')
     } catch {
       toast.error('Erro ao concluir tarefa!')
@@ -125,89 +123,89 @@ export default function Dashboard() {
     <div style={{ background: '#0f0a1e' }} className="min-h-screen flex">
       <Sidebar />
 
-      <main className="flex-1 flex flex-col min-h-screen">
-        <header className="flex items-center justify-between p-6 border-b border-white/10">
+      <main className="flex-1 flex flex-col min-h-screen pb-20 lg:pb-0">
+        <header className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
           <div style={fadeUp(0)}>
-            <h2 className="text-white font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-white font-semibold text-base sm:text-lg flex items-center gap-2">
               <Sun size={20} className="text-yellow-400" />
               {getGreeting()}, {name}!
             </h2>
-            <p className="text-white/40 text-sm">
+            <p className="text-white/40 text-xs sm:text-sm">
               {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
           <UserMenu />
         </header>
 
-        <div className="flex-1 p-6 space-y-6">
+        <div className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-6">
 
           {/* Cards de progresso do dia */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div style={fadeUp(100)} className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <p className="text-white/50 text-sm mb-1">Progresso do dia</p>
-              <p className="text-3xl font-bold text-white">{progress}%</p>
-              <div className="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+            <div style={fadeUp(100)} className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5">
+              <p className="text-white/50 text-xs sm:text-sm mb-1">Progresso</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white">{progress}%</p>
+              <div className="mt-3 h-1.5 sm:h-2 bg-white/10 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-purple-500 rounded-full transition-all duration-1000"
                   style={{ width: visible ? `${progress}%` : '0%' }}
                 />
               </div>
             </div>
-            <div style={fadeUp(200)} className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <p className="text-white/50 text-sm mb-1">Concluídas</p>
-              <p className="text-3xl font-bold text-green-400">{completedCount}</p>
-              <p className="text-white/30 text-sm mt-1">de {tasks.length} tarefas</p>
+            <div style={fadeUp(200)} className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5">
+              <p className="text-white/50 text-xs sm:text-sm mb-1">Concluídas</p>
+              <p className="text-2xl sm:text-3xl font-bold text-green-400">{completedCount}</p>
+              <p className="text-white/30 text-xs mt-1">de {tasks.length}</p>
             </div>
-            <div style={fadeUp(300)} className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <p className="text-white/50 text-sm mb-1">Pendentes</p>
-              <p className="text-3xl font-bold text-yellow-400">{tasks.length - completedCount}</p>
-              <p className="text-white/30 text-sm mt-1">ainda faltam</p>
+            <div style={fadeUp(300)} className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5">
+              <p className="text-white/50 text-xs sm:text-sm mb-1">Pendentes</p>
+              <p className="text-2xl sm:text-3xl font-bold text-yellow-400">{tasks.length - completedCount}</p>
+              <p className="text-white/30 text-xs mt-1">faltam</p>
             </div>
           </div>
 
           {/* Cards de desempenho e ranking */}
           {score && (
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div style={fadeUp(400)} className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                <p className="text-white/50 text-sm mb-1">Seu grade</p>
-                <p className={`text-3xl font-black ${gradeColors[score.grade]}`}>
-                  Grade {score.grade}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div style={fadeUp(400)} className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5">
+                <p className="text-white/50 text-xs sm:text-sm mb-1">Grade</p>
+                <p className={`text-2xl sm:text-3xl font-black ${gradeColors[score.grade]}`}>
+                  {score.grade}
                 </p>
                 <p className="text-white/30 text-xs mt-1">{score.score}/100 pts</p>
               </div>
-              <div style={fadeUp(500)} className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                <p className="text-white/50 text-sm mb-1 flex items-center gap-1">
-                  <Flame size={14} className="text-orange-400" /> Streak
+              <div style={fadeUp(500)} className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5">
+                <p className="text-white/50 text-xs sm:text-sm mb-1 flex items-center gap-1">
+                  <Flame size={12} className="text-orange-400" /> Streak
                 </p>
-                <p className="text-3xl font-bold text-orange-400">{score.streak}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-orange-400">{score.streak}</p>
                 <p className="text-white/30 text-xs mt-1">dias seguidos</p>
               </div>
-              <div style={fadeUp(600)} className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                <p className="text-white/50 text-sm mb-1 flex items-center gap-1">
-                  <TrendingUp size={14} className="text-purple-400" /> Média
+              <div style={fadeUp(600)} className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5">
+                <p className="text-white/50 text-xs sm:text-sm mb-1 flex items-center gap-1">
+                  <TrendingUp size={12} className="text-purple-400" /> Média
                 </p>
-                <p className="text-3xl font-bold text-purple-400">{score.avgPercentage}%</p>
-                <p className="text-white/30 text-xs mt-1">de conclusão geral</p>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-400">{score.avgPercentage}%</p>
+                <p className="text-white/30 text-xs mt-1">conclusão</p>
               </div>
               <div
                 style={fadeUp(700)}
-                className="bg-white/5 border border-white/10 rounded-2xl p-5 cursor-pointer hover:bg-white/10 transition"
+                className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5 cursor-pointer hover:bg-white/10 transition"
                 onClick={() => navigate('/ranking')}
               >
-                <p className="text-white/50 text-sm mb-1 flex items-center gap-1">
-                  <Trophy size={14} className="text-yellow-400" /> Ranking
+                <p className="text-white/50 text-xs sm:text-sm mb-1 flex items-center gap-1">
+                  <Trophy size={12} className="text-yellow-400" /> Ranking
                 </p>
-                <p className="text-3xl font-bold text-yellow-400">
+                <p className="text-2xl sm:text-3xl font-bold text-yellow-400">
                   {rankPosition ? `#${rankPosition}` : '-'}
                 </p>
-                <p className="text-white/30 text-xs mt-1">ver ranking global →</p>
+                <p className="text-white/30 text-xs mt-1">global →</p>
               </div>
             </div>
           )}
 
           {/* Checklist */}
-          <div style={fadeUp(800)} className="bg-white/5 border border-white/10 rounded-2xl p-6">
-            <h3 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
+          <div style={fadeUp(800)} className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6">
+            <h3 className="text-white font-semibold text-base sm:text-lg mb-4 flex items-center gap-2">
               <ListTodo size={20} className="text-purple-400" />
               Tarefas de hoje
             </h3>
@@ -230,7 +228,7 @@ export default function Dashboard() {
                 {tasks.map((task, index) => (
                   <div
                     key={task.id}
-                    className={`flex items-center gap-4 p-4 rounded-xl border transition-all duration-200
+                    className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border transition-all duration-200
                       ${task.completed
                         ? 'bg-green-500/10 border-green-500/20'
                         : 'bg-white/5 border-white/10 hover:bg-white/10'
@@ -247,19 +245,19 @@ export default function Dashboard() {
                       className="flex-shrink-0 transition"
                     >
                       {task.completed
-                        ? <CheckCircle2 size={24} className="text-green-400" />
-                        : <Circle size={24} className="text-white/30 hover:text-purple-400 transition" />
+                        ? <CheckCircle2 size={22} className="text-green-400" />
+                        : <Circle size={22} className="text-white/30 hover:text-purple-400 transition" />
                       }
                     </button>
-                    <div className="flex-1">
-                      <p className={`font-medium transition ${task.completed ? 'line-through text-white/40' : 'text-white'}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-medium text-sm sm:text-base transition truncate ${task.completed ? 'line-through text-white/40' : 'text-white'}`}>
                         {task.title}
                       </p>
                       {task.description && (
-                        <p className="text-white/40 text-sm mt-0.5">{task.description}</p>
+                        <p className="text-white/40 text-xs sm:text-sm mt-0.5 truncate">{task.description}</p>
                       )}
                     </div>
-                    {task.completed && <span className="text-green-400 text-xs font-medium">Concluída</span>}
+                    {task.completed && <span className="text-green-400 text-xs font-medium flex-shrink-0">✓</span>}
                   </div>
                 ))}
               </div>
