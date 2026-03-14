@@ -28,7 +28,7 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "email_verified", nullable = false, columnDefinition = "boolean default false")
+    @Column(name = "email_verified", columnDefinition = "boolean default false")
     private Boolean emailVerified = false;
 
     @Column(name = "verification_code")
@@ -40,6 +40,11 @@ public class User {
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
+        if (this.emailVerified == null) this.emailVerified = false;
+    }
+
+    @PostLoad
+    public void postLoad() {
         if (this.emailVerified == null) this.emailVerified = false;
     }
 
@@ -68,5 +73,5 @@ public class User {
     public void setVerificationCode(String verificationCode) { this.verificationCode = verificationCode; }
 
     public LocalDateTime getVerificationCodeExpiresAt() { return verificationCodeExpiresAt; }
-    public void setVerificationCodeExpiresAt(LocalDateTime verificationCodeExpiresAt) { this.verificationCodeExpiresAt = verificationCodeExpiresAt; }
+    public void setVerificationCodeExpiresAt(LocalDateTime v) { this.verificationCodeExpiresAt = v; }
 }
