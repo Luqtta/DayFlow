@@ -11,9 +11,7 @@ export default function Login() {
   const [visible, setVisible] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  useEffect(() => {
-    setTimeout(() => setVisible(true), 100)
-  }, [])
+  useEffect(() => { setTimeout(() => setVisible(true), 100) }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,6 +33,11 @@ export default function Login() {
       const data = await response.json()
 
       if (!response.ok) {
+        if (data.error === 'EMAIL_NOT_VERIFIED') {
+          toast.error('Verifique seu email antes de entrar!')
+          setTimeout(() => navigate('/verify-email', { state: { email } }), 1500)
+          return
+        }
         toast.error(data.error || 'Email ou senha inválidos!')
         return
       }
@@ -63,16 +66,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-
       <div className="fixed top-[-100px] left-[-100px] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="fixed bottom-[-100px] right-[-100px] w-[400px] h-[400px] bg-purple-800/20 rounded-full blur-3xl pointer-events-none" />
 
       <div
         className="relative w-full max-w-md transition-all duration-700"
-        style={{
-          opacity: visible ? 1 : 0,
-          transform: visible ? 'translateY(0)' : 'translateY(30px)'
-        }}
+        style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(30px)' }}
       >
         <div className="text-center mb-8">
           <h1
@@ -110,11 +109,8 @@ export default function Login() {
                   className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/40 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition"
                 />
                 {password && (
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition"
-                  >
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition">
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 )}
@@ -132,10 +128,8 @@ export default function Login() {
 
           <p className="text-center text-white/50 text-sm mt-6">
             Não tem conta?{' '}
-            <span
-              onClick={() => navigate('/register')}
-              className="text-purple-300 hover:text-purple-200 cursor-pointer transition"
-            >
+            <span onClick={() => navigate('/register')}
+              className="text-purple-300 hover:text-purple-200 cursor-pointer transition">
               Criar conta
             </span>
           </p>

@@ -29,11 +29,30 @@ public class UserController {
                 body.get("password")
             );
             return ResponseEntity.ok(Map.of(
-                "message", "Usuário criado com sucesso!",
-                "id", user.getId(),
-                "name", user.getName(),
-                "email", user.getEmail()
+                "message", "Conta criada! Verifique seu email.",
+                "email", user.getEmail(),
+                "name", user.getName()
             ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestBody Map<String, String> body) {
+        try {
+            userService.verifyEmail(body.get("email"), body.get("code"));
+            return ResponseEntity.ok(Map.of("message", "Email verificado com sucesso!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/resend-code")
+    public ResponseEntity<?> resendCode(@RequestBody Map<String, String> body) {
+        try {
+            userService.resendVerificationCode(body.get("email"));
+            return ResponseEntity.ok(Map.of("message", "Novo código enviado!"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

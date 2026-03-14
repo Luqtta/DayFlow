@@ -9,7 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Random;
 
 @Service
 public class UserService {
@@ -22,6 +24,9 @@ public class UserService {
 
     @Autowired
     private JwtService jwtService;
+
+    @Autowired
+    private EmailService emailService;
 
     private static final List<String> BAD_WORDS = List.of(
         "puta", "merda", "corno", "viado", "buceta", "caralho",
@@ -49,24 +54,79 @@ public class UserService {
         }
     }
 
+    private String generateVerificationCode() {
+        return String.format("%06d", new Random().nextInt(999999));
+    }
+
     public User register(String name, String email, String password) {
         validateName(name);
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email já cadastrado!");
         }
+
+        String code = generateVerificationCode();
+
         User user = new User();
         user.setName(name.trim());
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
-        return userRepository.save(user);
+        user.setEmailVerified(false);
+        user.setVerificationCode(code);
+        user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        emailService.sendVerificationCode(email, name.trim(), code);
+
+        return user;
+    }
+
+    public void verifyEmail(String email, String code) {
+        User user = findByEmail(email);
+
+        if (user.isEmailVerified()) {
+            throw new RuntimeException("Email já verificado!");
+        }
+        if (user.getVerificationCode() == null || !user.getVerificationCode().equals(code)) {
+            throw new RuntimeException("Código inválido!");
+        }
+        if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Código expirado! Solicite um novo.");
+        }
+
+        user.setEmailVerified(true);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiresAt(null);
+        userRepository.save(user);
+
+        emailService.sendWelcome(email, user.getName());
+    }
+
+    public void resendVerificationCode(String email) {
+        User user = findByEmail(email);
+
+        if (user.isEmailVerified()) {
+            throw new RuntimeException("Email já verificado!");
+        }
+
+        String code = generateVerificationCode();
+        user.setVerificationCode(code);
+        user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        emailService.sendVerificationCode(email, user.getName(), code);
     }
 
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email ou senha inválidos!"));
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Email ou senha inválidos!");
         }
+        if (!user.isEmailVerified()) {
+            throw new RuntimeException("EMAIL_NOT_VERIFIED");
+        }
+
         String token = jwtService.generateToken(user.getEmail());
         return new LoginResponse(token, user.getName(), user.getEmail());
     }
@@ -89,8 +149,11 @@ public class UserService {
     public User updateName(String email, String newName) {
         validateName(newName);
         User user = findByEmail(email);
+        String oldName = user.getName();
         user.setName(newName.trim());
-        return userRepository.save(user);
+        userRepository.save(user);
+        emailService.sendNameChangeAlert(email, oldName, newName.trim());
+        return user;
     }
 
     public User updatePassword(String email, String currentPassword, String newPassword) {
@@ -99,6 +162,8 @@ public class UserService {
             throw new RuntimeException("Senha atual incorreta!");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
-        return userRepository.save(user);
+        userRepository.save(user);
+        emailService.sendPasswordChangeAlert(email, user.getName());
+        return user;
     }
 }
