@@ -1,44 +1,32 @@
 package com.dayflow.backend.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
 
-    @Value("${sendgrid.api.key}")
-    private String apiKey;
+    @Autowired
+    private JavaMailSender mailSender;
 
-    @Value("${sendgrid.from.email}")
+    @Value("${spring.mail.username}")
     private String fromEmail;
 
     private void sendEmail(String to, String subject, String htmlContent) {
         try {
-            String body = String.format("""
-                {
-                    "personalizations": [{"to": [{"email": "%s"}]}],
-                    "from": {"email": "%s", "name": "DayFlow"},
-                    "subject": "%s",
-                    "content": [{"type": "text/html", "value": "%s"}]
-                }
-                """, to, fromEmail, subject, htmlContent.replace("\"", "\\\"").replace("\n", "\\n"));
-
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.sendgrid.com/v3/mail/send"))
-                .header("Authorization", "Bearer " + apiKey)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-            var resp = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println("SendGrid status: " + resp.statusCode());
-            System.out.println("SendGrid body: " + resp.body());
-
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail, "DayFlow");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+            System.out.println("Email enviado para: " + to);
         } catch (Exception e) {
             System.err.println("Erro ao enviar email: " + e.getMessage());
         }
