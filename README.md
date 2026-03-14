@@ -6,7 +6,7 @@
 
 DayFlow é uma aplicação web full stack de gerenciamento de rotinas pessoais com sistema de gamificação, ranking global e acompanhamento de progresso diário.
 
-![DayFlow Dashboard](<img width="1861" height="916" alt="Image" src="https://github.com/user-attachments/assets/00bcd64b-12eb-4b46-ba85-278b45a76fc5" />)
+(<img width="1861" height="916" alt="Image" src="https://github.com/user-attachments/assets/00bcd64b-12eb-4b46-ba85-278b45a76fc5" />)
 
 </div>
 
