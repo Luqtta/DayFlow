@@ -35,7 +35,10 @@ public class EmailService {
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
-            HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+            var resp = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("SendGrid status: " + resp.statusCode());
+            System.out.println("SendGrid body: " + resp.body());
+
         } catch (Exception e) {
             System.err.println("Erro ao enviar email: " + e.getMessage());
         }
