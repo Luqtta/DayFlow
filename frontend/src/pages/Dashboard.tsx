@@ -58,13 +58,13 @@ export default function Dashboard() {
   const fetchAll = async () => {
     try {
       const [tasksRes, scoreRes, rankingRes] = await Promise.all([
-        fetch('http://localhost:8080/tasks/today', {
+        fetch('https://dayflow-production-724d.up.railway.app/tasks/today', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:8080/score/me', {
+        fetch('https://dayflow-production-724d.up.railway.app/score/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:8080/score/ranking', {
+        fetch('https://dayflow-production-724d.up.railway.app/score/ranking', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ])
@@ -94,7 +94,7 @@ export default function Dashboard() {
 
   const completeTask = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8080/tasks/${id}/complete`, {
+      const response = await fetch(`https://dayflow-production-724d.up.railway.app/tasks/${id}/complete`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       })

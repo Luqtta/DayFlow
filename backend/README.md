@@ -54,7 +54,7 @@ spring:
 mvn spring-boot:run
 ```
 
-A API estará disponível em `http://localhost:8080`
+A API estará disponível em `https://dayflow-production-724d.up.railway.app`
 
 ## 📡 Endpoints principais
 

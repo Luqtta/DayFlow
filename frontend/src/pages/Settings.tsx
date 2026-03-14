@@ -29,7 +29,7 @@ export default function Settings() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch('http://localhost:8080/auth/profile', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/auth/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await response.json()
@@ -47,7 +47,7 @@ export default function Settings() {
     if (!name.trim()) { toast.error('Nome não pode ser vazio!'); return }
     setLoadingName(true)
     try {
-      const response = await fetch('http://localhost:8080/auth/name', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/auth/name', {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
@@ -77,7 +77,7 @@ export default function Settings() {
     }
     setLoadingPassword(true)
     try {
-      const response = await fetch('http://localhost:8080/auth/password', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/auth/password', {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword, newPassword })

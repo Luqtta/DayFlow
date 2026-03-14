@@ -43,10 +43,10 @@ export default function UserProfile() {
   const fetchData = async () => {
     try {
       const [profileRes, scoreRes] = await Promise.all([
-        fetch('http://localhost:8080/auth/profile', {
+        fetch('https://dayflow-production-724d.up.railway.app/auth/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:8080/score/me', {
+        fetch('https://dayflow-production-724d.up.railway.app/score/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ])

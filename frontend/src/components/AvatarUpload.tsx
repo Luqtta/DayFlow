@@ -52,7 +52,7 @@ export default function AvatarUpload({ currentAvatar, name, onUpdate }: Props) {
 
       const avatarUrl = cloudData.secure_url
 
-      const backendRes = await fetch('http://localhost:8080/auth/avatar', {
+      const backendRes = await fetch('https://dayflow-production-724d.up.railway.app/auth/avatar', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

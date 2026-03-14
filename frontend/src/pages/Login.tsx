@@ -26,7 +26,7 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:8080/auth/login', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -43,7 +43,7 @@ export default function Login() {
       localStorage.setItem('name', data.name)
       localStorage.setItem('email', data.email)
 
-      const profileRes = await fetch('http://localhost:8080/auth/profile', {
+      const profileRes = await fetch('https://dayflow-production-724d.up.railway.app/auth/profile', {
         headers: { 'Authorization': `Bearer ${data.token}` }
       })
       const profileData = await profileRes.json()

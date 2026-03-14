@@ -38,7 +38,7 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
 
   useEffect(() => {
     setLoading(true)
-    fetch(`http://localhost:8080/tasks/routine/${routineId}`, {
+    fetch(`https://dayflow-production-724d.up.railway.app/tasks/routine/${routineId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -48,7 +48,7 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
 
   const deleteTask = async (id: number) => {
     try {
-      await fetch(`http://localhost:8080/tasks/${id}`, {
+      await fetch(`https://dayflow-production-724d.up.railway.app/tasks/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -65,7 +65,7 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
     if (!editingTask) return
     if (!editingTask.title) { toast.error('Título é obrigatório!'); return }
     try {
-      const response = await fetch(`http://localhost:8080/tasks/${editingTask.id}`, {
+      const response = await fetch(`https://dayflow-production-724d.up.railway.app/tasks/${editingTask.id}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -248,7 +248,7 @@ export default function Routines() {
 
   const fetchRoutines = async () => {
     try {
-      const response = await fetch('http://localhost:8080/routines', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/routines', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await response.json()
@@ -263,7 +263,7 @@ export default function Routines() {
   const createRoutine = async () => {
     if (!routineForm.title) { toast.error('Título é obrigatório!'); return }
     try {
-      const response = await fetch('http://localhost:8080/routines', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/routines', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(routineForm)
@@ -282,7 +282,7 @@ export default function Routines() {
     if (!editingRoutine) return
     if (!editingRoutine.title) { toast.error('Título é obrigatório!'); return }
     try {
-      const response = await fetch(`http://localhost:8080/routines/${editingRoutine.id}`, {
+      const response = await fetch(`https://dayflow-production-724d.up.railway.app/routines/${editingRoutine.id}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -302,7 +302,7 @@ export default function Routines() {
 
   const deleteRoutine = async (id: number) => {
     try {
-      await fetch(`http://localhost:8080/routines/${id}`, {
+      await fetch(`https://dayflow-production-724d.up.railway.app/routines/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -318,7 +318,7 @@ export default function Routines() {
     if (!taskForm.title) { toast.error('Título é obrigatório!'); return }
     if (!taskForm.recurrent && !taskForm.dueDate) { toast.error('Selecione uma data ou marque como recorrente!'); return }
     try {
-      const response = await fetch('http://localhost:8080/tasks', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/tasks', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...taskForm, routineId: selectedRoutineId })

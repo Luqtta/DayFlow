@@ -28,7 +28,7 @@ export default function History() {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch('http://localhost:8080/tasks', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/tasks', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const tasks = await response.json()

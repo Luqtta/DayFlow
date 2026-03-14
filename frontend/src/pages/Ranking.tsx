@@ -40,7 +40,7 @@ export default function Ranking() {
 
   useEffect(() => {
     if (!token) { navigate('/login'); return }
-    fetch('http://localhost:8080/auth/profile', {
+    fetch('https://dayflow-production-724d.up.railway.app/auth/profile', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -54,7 +54,7 @@ export default function Ranking() {
 
   const fetchRanking = async () => {
     try {
-      const response = await fetch('http://localhost:8080/score/ranking', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/score/ranking', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await response.json()
