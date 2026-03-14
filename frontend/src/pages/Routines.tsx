@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Plus, X, ChevronDown, ChevronUp, Trash2, RefreshCw, Pencil } from 'lucide-react'
@@ -105,16 +105,12 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
               <span className="text-white/20 text-xs">{task.dueDate}</span>
             )}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-              <button
-                onClick={() => setEditingTask({ ...task })}
-                className="text-white/30 hover:text-purple-400 transition p-1 rounded-lg hover:bg-purple-500/10"
-              >
+              <button onClick={() => setEditingTask({ ...task })}
+                className="text-white/30 hover:text-purple-400 transition p-1 rounded-lg hover:bg-purple-500/10">
                 <Pencil size={13} />
               </button>
-              <button
-                onClick={() => setConfirmDeleteTaskId(task.id)}
-                className="text-red-400/50 hover:text-red-400 transition p-1 rounded-lg hover:bg-red-500/10"
-              >
+              <button onClick={() => setConfirmDeleteTaskId(task.id)}
+                className="text-red-400/50 hover:text-red-400 transition p-1 rounded-lg hover:bg-red-500/10">
                 <Trash2 size={13} />
               </button>
             </div>
@@ -122,26 +118,19 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
         ))}
       </div>
 
-      {/* Modal confirmar delete tarefa — renderizado no body */}
       {confirmDeleteTaskId && createPortal(
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1a1030] border border-white/20 rounded-2xl p-6 w-full max-w-sm text-center">
             <div className="text-4xl mb-4">🗑️</div>
             <h3 className="text-white font-semibold text-lg mb-2">Deletar tarefa?</h3>
-            <p className="text-white/40 text-sm mb-6">
-              Essa tarefa será deletada permanentemente. Essa ação não pode ser desfeita.
-            </p>
+            <p className="text-white/40 text-sm mb-6">Essa tarefa será deletada permanentemente.</p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDeleteTaskId(null)}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl transition"
-              >
+              <button onClick={() => setConfirmDeleteTaskId(null)}
+                className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl transition">
                 Cancelar
               </button>
-              <button
-                onClick={() => deleteTask(confirmDeleteTaskId)}
-                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold py-3 rounded-xl transition"
-              >
+              <button onClick={() => deleteTask(confirmDeleteTaskId)}
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold py-3 rounded-xl transition">
                 Deletar
               </button>
             </div>
@@ -150,7 +139,6 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
         document.body
       )}
 
-      {/* Modal editar tarefa — renderizado no body */}
       {editingTask && createPortal(
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1a1030] border border-white/20 rounded-2xl p-6 w-full max-w-md">
@@ -163,31 +151,23 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
             <div className="space-y-4">
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Título</label>
-                <input
-                  value={editingTask.title}
+                <input value={editingTask.title}
                   onChange={e => setEditingTask({ ...editingTask, title: e.target.value })}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
-                />
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
               </div>
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Descrição (opcional)</label>
-                <input
-                  value={editingTask.description || ''}
+                <input value={editingTask.description || ''}
                   onChange={e => setEditingTask({ ...editingTask, description: e.target.value })}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
-                />
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
               </div>
-              <div
-                onClick={() => setEditingTask({ ...editingTask, recurrent: !editingTask.recurrent, dueDate: '' })}
+              <div onClick={() => setEditingTask({ ...editingTask, recurrent: !editingTask.recurrent, dueDate: '' })}
                 className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition
-                  ${editingTask.recurrent ? 'bg-purple-600/20 border-purple-500/40' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
-              >
+                  ${editingTask.recurrent ? 'bg-purple-600/20 border-purple-500/40' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                 <div className="flex items-center gap-3">
                   <RefreshCw size={16} className={editingTask.recurrent ? 'text-purple-400' : 'text-white/30'} />
                   <div>
-                    <p className={`text-sm font-medium ${editingTask.recurrent ? 'text-purple-200' : 'text-white/60'}`}>
-                      Tarefa recorrente
-                    </p>
+                    <p className={`text-sm font-medium ${editingTask.recurrent ? 'text-purple-200' : 'text-white/60'}`}>Tarefa recorrente</p>
                     <p className="text-white/30 text-xs">Aparece todo dia no checklist</p>
                   </div>
                 </div>
@@ -198,18 +178,13 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
               {!editingTask.recurrent && (
                 <div>
                   <label className="text-purple-200 text-sm mb-1 block">Data</label>
-                  <input
-                    type="date"
-                    value={editingTask.dueDate || ''}
+                  <input type="date" value={editingTask.dueDate || ''}
                     onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
-                  />
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
                 </div>
               )}
-              <button
-                onClick={updateTask}
-                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition"
-              >
+              <button onClick={updateTask}
+                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition">
                 Salvar alterações
               </button>
             </div>
@@ -240,6 +215,9 @@ export default function Routines() {
   const [routineForm, setRoutineForm] = useState({ title: '', description: '', category: 'estudo' })
   const [taskForm, setTaskForm] = useState({ title: '', description: '', dueDate: '', recurrent: false })
 
+  const creatingRoutine = useRef(false)
+  const creatingTask = useRef(false)
+
   useEffect(() => {
     if (!token) { navigate('/login'); return }
     fetchRoutines()
@@ -261,7 +239,9 @@ export default function Routines() {
   }
 
   const createRoutine = async () => {
+    if (creatingRoutine.current) return
     if (!routineForm.title) { toast.error('Título é obrigatório!'); return }
+    creatingRoutine.current = true
     try {
       const response = await fetch('https://dayflow-production-724d.up.railway.app/routines', {
         method: 'POST',
@@ -275,6 +255,8 @@ export default function Routines() {
       fetchRoutines()
     } catch {
       toast.error('Erro ao criar rotina!')
+    } finally {
+      creatingRoutine.current = false
     }
   }
 
@@ -315,8 +297,10 @@ export default function Routines() {
   }
 
   const createTask = async () => {
+    if (creatingTask.current) return
     if (!taskForm.title) { toast.error('Título é obrigatório!'); return }
     if (!taskForm.recurrent && !taskForm.dueDate) { toast.error('Selecione uma data ou marque como recorrente!'); return }
+    creatingTask.current = true
     try {
       const response = await fetch('https://dayflow-production-724d.up.railway.app/tasks', {
         method: 'POST',
@@ -331,6 +315,8 @@ export default function Routines() {
       setExpandedRoutine(selectedRoutineId)
     } catch {
       toast.error('Erro ao criar tarefa!')
+    } finally {
+      creatingTask.current = false
     }
   }
 
@@ -347,25 +333,23 @@ export default function Routines() {
     <div style={{ background: '#0f0a1e' }} className="min-h-screen flex">
       <Sidebar />
 
-      <main className="flex-1 flex flex-col">
-        <header className="flex items-center justify-between p-6 border-b border-white/10">
+      <main className="flex-1 flex flex-col pb-20 lg:pb-0">
+        <header className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
           <div>
             <h2 className="text-white font-semibold text-lg">Minhas Rotinas</h2>
             <p className="text-white/40 text-sm">Gerencie suas rotinas e tarefas</p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowRoutineModal(true)}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl transition hover:scale-[1.02]"
-            >
+            <button onClick={() => setShowRoutineModal(true)}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl transition hover:scale-[1.02]">
               <Plus size={18} />
-              Nova rotina
+              <span className="hidden sm:inline">Nova rotina</span>
             </button>
             <UserMenu />
           </div>
         </header>
 
-        <div className="flex-1 p-6 space-y-4">
+        <div className="flex-1 p-4 sm:p-6 space-y-4">
           {loading ? (
             <p className="text-white/40">Carregando rotinas...</p>
           ) : routines.length === 0 ? (
@@ -375,60 +359,47 @@ export default function Routines() {
             </div>
           ) : (
             routines.map((routine, index) => (
-              <div
-                key={routine.id}
-                className="bg-white/5 border border-white/10 rounded-2xl"
+              <div key={routine.id} className="bg-white/5 border border-white/10 rounded-2xl"
                 style={{
                   opacity: visible ? 1 : 0,
                   transform: visible ? 'translateY(0)' : 'translateY(20px)',
                   transition: `all 0.5s ease ${index * 80}ms`
-                }}
-              >
-                <div className="flex items-center justify-between p-5">
-                  <div className="flex items-center gap-3">
+                }}>
+                <div className="flex items-center justify-between p-4 sm:p-5">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <button onClick={() => setExpandedRoutine(expandedRoutine === routine.id ? null : routine.id)}>
                       {expandedRoutine === routine.id
                         ? <ChevronUp size={20} className="text-white/50" />
                         : <ChevronDown size={20} className="text-white/50" />
                       }
                     </button>
-                    <div>
-                      <h3 className="text-white font-semibold">{routine.title}</h3>
-                      {routine.description && <p className="text-white/40 text-sm">{routine.description}</p>}
+                    <div className="min-w-0">
+                      <h3 className="text-white font-semibold truncate">{routine.title}</h3>
+                      {routine.description && <p className="text-white/40 text-sm truncate">{routine.description}</p>}
                     </div>
-                    <span className={`text-xs px-3 py-1 rounded-full border ${categoryColors[routine.category] || categoryColors['outro']}`}>
+                    <span className={`hidden sm:inline text-xs px-3 py-1 rounded-full border flex-shrink-0 ${categoryColors[routine.category] || categoryColors['outro']}`}>
                       {routine.category}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => { setSelectedRoutineId(routine.id); setShowTaskModal(true) }}
-                      className="flex items-center gap-1 text-purple-400 hover:text-purple-300 text-sm transition px-3 py-1.5 rounded-lg hover:bg-purple-500/10"
-                    >
-                      <Plus size={16} />Tarefa
+                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                    <button onClick={() => { setSelectedRoutineId(routine.id); setShowTaskModal(true) }}
+                      className="flex items-center gap-1 text-purple-400 hover:text-purple-300 text-sm transition px-2 sm:px-3 py-1.5 rounded-lg hover:bg-purple-500/10">
+                      <Plus size={16} />
+                      <span className="hidden sm:inline">Tarefa</span>
                     </button>
-                    <button
-                      onClick={() => setEditingRoutine(routine)}
-                      className="text-white/30 hover:text-purple-400 transition p-1.5 rounded-lg hover:bg-purple-500/10"
-                    >
+                    <button onClick={() => setEditingRoutine(routine)}
+                      className="text-white/30 hover:text-purple-400 transition p-1.5 rounded-lg hover:bg-purple-500/10">
                       <Pencil size={15} />
                     </button>
-                    <button
-                      onClick={() => setConfirmDeleteId(routine.id)}
-                      className="text-red-400/50 hover:text-red-400 transition p-1.5 rounded-lg hover:bg-red-500/10"
-                    >
+                    <button onClick={() => setConfirmDeleteId(routine.id)}
+                      className="text-red-400/50 hover:text-red-400 transition p-1.5 rounded-lg hover:bg-red-500/10">
                       <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
 
-                <div
-                  className="transition-all duration-300"
-                  style={{
-                    maxHeight: expandedRoutine === routine.id ? '500px' : '0px',
-                    overflow: 'hidden'
-                  }}
-                >
+                <div className="transition-all duration-300"
+                  style={{ maxHeight: expandedRoutine === routine.id ? '500px' : '0px', overflow: 'hidden' }}>
                   <div className="border-t border-white/10 px-5 pb-4">
                     <RoutineTasks
                       routineId={routine.id}
@@ -453,16 +424,12 @@ export default function Routines() {
           <div className="bg-[#1a1030] border border-white/20 rounded-2xl p-6 w-full max-w-sm text-center">
             <div className="text-4xl mb-4">🗑️</div>
             <h3 className="text-white font-semibold text-lg mb-2">Deletar rotina?</h3>
-            <p className="text-white/40 text-sm mb-6">
-              Todas as tarefas dessa rotina serão deletadas permanentemente. Essa ação não pode ser desfeita.
-            </p>
+            <p className="text-white/40 text-sm mb-6">Todas as tarefas serão deletadas permanentemente.</p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDeleteId(null)} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl transition">
-                Cancelar
-              </button>
-              <button onClick={() => deleteRoutine(confirmDeleteId)} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold py-3 rounded-xl transition">
-                Deletar
-              </button>
+              <button onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl transition">Cancelar</button>
+              <button onClick={() => deleteRoutine(confirmDeleteId)}
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold py-3 rounded-xl transition">Deletar</button>
             </div>
           </div>
         </div>
@@ -474,40 +441,33 @@ export default function Routines() {
           <div className="bg-[#1a1030] border border-white/20 rounded-2xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-white font-semibold text-lg">Editar rotina</h3>
-              <button onClick={() => setEditingRoutine(null)} className="text-white/50 hover:text-white transition">
-                <X size={20} />
-              </button>
+              <button onClick={() => setEditingRoutine(null)} className="text-white/50 hover:text-white transition"><X size={20} /></button>
             </div>
             <div className="space-y-4">
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Título</label>
-                <input
-                  value={editingRoutine.title}
+                <input value={editingRoutine.title}
                   onChange={e => setEditingRoutine({ ...editingRoutine, title: e.target.value })}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
-                />
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
               </div>
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Descrição (opcional)</label>
-                <input
-                  value={editingRoutine.description || ''}
+                <input value={editingRoutine.description || ''}
                   onChange={e => setEditingRoutine({ ...editingRoutine, description: e.target.value })}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
-                />
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
               </div>
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Categoria</label>
-                <select
-                  value={editingRoutine.category}
+                <select value={editingRoutine.category}
                   onChange={e => setEditingRoutine({ ...editingRoutine, category: e.target.value })}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
-                >
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition">
                   {CATEGORIES.map(cat => (
                     <option key={cat} value={cat} style={{ background: '#1a1030' }}>{cat}</option>
                   ))}
                 </select>
               </div>
-              <button onClick={updateRoutine} className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition">
+              <button onClick={updateRoutine}
+                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition">
                 Salvar alterações
               </button>
             </div>
@@ -521,42 +481,35 @@ export default function Routines() {
           <div className="bg-[#1a1030] border border-white/20 rounded-2xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-white font-semibold text-lg">Nova rotina</h3>
-              <button onClick={() => setShowRoutineModal(false)} className="text-white/50 hover:text-white transition">
-                <X size={20} />
-              </button>
+              <button onClick={() => setShowRoutineModal(false)} className="text-white/50 hover:text-white transition"><X size={20} /></button>
             </div>
             <div className="space-y-4">
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Título</label>
-                <input
-                  value={routineForm.title}
+                <input value={routineForm.title}
                   onChange={e => setRoutineForm({ ...routineForm, title: e.target.value })}
                   placeholder="Ex: Rotina de estudos"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition"
-                />
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition" />
               </div>
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Descrição (opcional)</label>
-                <input
-                  value={routineForm.description}
+                <input value={routineForm.description}
                   onChange={e => setRoutineForm({ ...routineForm, description: e.target.value })}
                   placeholder="Ex: Estudar todos os dias"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition"
-                />
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition" />
               </div>
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Categoria</label>
-                <select
-                  value={routineForm.category}
+                <select value={routineForm.category}
                   onChange={e => setRoutineForm({ ...routineForm, category: e.target.value })}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
-                >
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition">
                   {CATEGORIES.map(cat => (
                     <option key={cat} value={cat} style={{ background: '#1a1030' }}>{cat}</option>
                   ))}
                 </select>
               </div>
-              <button onClick={createRoutine} className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition">
+              <button onClick={createRoutine}
+                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition">
                 Criar rotina
               </button>
             </div>
@@ -570,40 +523,30 @@ export default function Routines() {
           <div className="bg-[#1a1030] border border-white/20 rounded-2xl p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-white font-semibold text-lg">Nova tarefa</h3>
-              <button onClick={() => setShowTaskModal(false)} className="text-white/50 hover:text-white transition">
-                <X size={20} />
-              </button>
+              <button onClick={() => setShowTaskModal(false)} className="text-white/50 hover:text-white transition"><X size={20} /></button>
             </div>
             <div className="space-y-4">
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Título</label>
-                <input
-                  value={taskForm.title}
+                <input value={taskForm.title}
                   onChange={e => setTaskForm({ ...taskForm, title: e.target.value })}
                   placeholder="Ex: Estudar Spring Boot"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition"
-                />
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition" />
               </div>
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Descrição (opcional)</label>
-                <input
-                  value={taskForm.description}
+                <input value={taskForm.description}
                   onChange={e => setTaskForm({ ...taskForm, description: e.target.value })}
                   placeholder="Ex: Estudar JPA e Hibernate"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition"
-                />
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition" />
               </div>
-              <div
-                onClick={() => setTaskForm({ ...taskForm, recurrent: !taskForm.recurrent, dueDate: '' })}
+              <div onClick={() => setTaskForm({ ...taskForm, recurrent: !taskForm.recurrent, dueDate: '' })}
                 className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition
-                  ${taskForm.recurrent ? 'bg-purple-600/20 border-purple-500/40' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
-              >
+                  ${taskForm.recurrent ? 'bg-purple-600/20 border-purple-500/40' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                 <div className="flex items-center gap-3">
                   <RefreshCw size={16} className={taskForm.recurrent ? 'text-purple-400' : 'text-white/30'} />
                   <div>
-                    <p className={`text-sm font-medium ${taskForm.recurrent ? 'text-purple-200' : 'text-white/60'}`}>
-                      Tarefa recorrente
-                    </p>
+                    <p className={`text-sm font-medium ${taskForm.recurrent ? 'text-purple-200' : 'text-white/60'}`}>Tarefa recorrente</p>
                     <p className="text-white/30 text-xs">Aparece todo dia no checklist</p>
                   </div>
                 </div>
@@ -614,15 +557,13 @@ export default function Routines() {
               {!taskForm.recurrent && (
                 <div>
                   <label className="text-purple-200 text-sm mb-1 block">Data</label>
-                  <input
-                    type="date"
-                    value={taskForm.dueDate}
+                  <input type="date" value={taskForm.dueDate}
                     onChange={e => setTaskForm({ ...taskForm, dueDate: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
-                  />
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
                 </div>
               )}
-              <button onClick={createTask} className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition">
+              <button onClick={createTask}
+                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition">
                 Criar tarefa
               </button>
             </div>
