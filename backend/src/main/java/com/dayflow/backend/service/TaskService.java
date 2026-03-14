@@ -72,19 +72,23 @@ public class TaskService {
 
     public List<Task> findByDate(String email, LocalDate date) {
         User user = userService.findByEmail(email);
+        LocalDate today = LocalDate.now();
 
         List<Task> dateTasks = taskRepository.findByUserIdAndDueDate(user.getId(), date);
         List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
 
-        // Reset recorrentes se foram concluídas em outro dia
-        recurrentTasks.forEach(task -> {
-            if (task.getCompletedAt() != null &&
-                !task.getCompletedAt().toLocalDate().equals(date)) {
-                task.setCompleted(false);
-                task.setCompletedAt(null);
-                taskRepository.save(task);
-            }
-        });
+        // Reset recorrentes APENAS quando consultando hoje
+        // Nunca resetar ao visualizar outros dias na agenda
+        if (date.equals(today)) {
+            recurrentTasks.forEach(task -> {
+                if (task.getCompletedAt() != null &&
+                    !task.getCompletedAt().toLocalDate().equals(today)) {
+                    task.setCompleted(false);
+                    task.setCompletedAt(null);
+                    taskRepository.save(task);
+                }
+            });
+        }
 
         List<Task> result = new ArrayList<>(dateTasks);
         result.addAll(recurrentTasks);
