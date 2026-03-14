@@ -11,32 +11,33 @@ import java.net.http.HttpResponse;
 @Service
 public class EmailService {
 
-    @Value("${resend.api-key}")
+    @Value("${brevo.api-key}")
     private String apiKey;
 
-    private static final String FROM_EMAIL = "DayFlow <onboarding@resend.dev>";
+    private static final String FROM_EMAIL = "dayflow.noreply@gmail.com";
+    private static final String FROM_NAME = "DayFlow";
 
     private void sendEmail(String to, String subject, String htmlContent) {
         try {
             String body = String.format("""
                 {
-                    "from": "%s",
-                    "to": ["%s"],
+                    "sender": {"email": "%s", "name": "%s"},
+                    "to": [{"email": "%s"}],
                     "subject": "%s",
-                    "html": "%s"
+                    "htmlContent": "%s"
                 }
-                """, FROM_EMAIL, to, subject, htmlContent.replace("\"", "\\\"").replace("\n", "\\n"));
+                """, FROM_EMAIL, FROM_NAME, to, subject, htmlContent.replace("\"", "\\\"").replace("\n", "\\n"));
 
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.resend.com/emails"))
-                .header("Authorization", "Bearer " + apiKey)
+                .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                .header("api-key", apiKey)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
             var resp = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println("Resend status: " + resp.statusCode());
-            System.out.println("Resend body: " + resp.body());
+            System.out.println("Brevo status: " + resp.statusCode());
+            System.out.println("Brevo body: " + resp.body());
 
         } catch (Exception e) {
             System.err.println("Erro ao enviar email: " + e.getMessage());
