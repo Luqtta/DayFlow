@@ -28,8 +28,8 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "email_verified")
-    private boolean emailVerified = false;
+    @Column(name = "email_verified", nullable = false, columnDefinition = "boolean default false")
+    private Boolean emailVerified = false;
 
     @Column(name = "verification_code")
     private String verificationCode;
@@ -40,6 +40,7 @@ public class User {
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
+        if (this.emailVerified == null) this.emailVerified = false;
     }
 
     public Long getId() { return id; }
@@ -60,8 +61,8 @@ public class User {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public boolean isEmailVerified() { return emailVerified; }
-    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+    public Boolean isEmailVerified() { return emailVerified != null && emailVerified; }
+    public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified != null ? emailVerified : false; }
 
     public String getVerificationCode() { return verificationCode; }
     public void setVerificationCode(String verificationCode) { this.verificationCode = verificationCode; }
