@@ -9,6 +9,7 @@ import History from './pages/History'
 import UserProfile from './pages/UserProfile'
 import Ranking from './pages/Ranking'
 import Settings from './pages/Settings'
+import Agenda from './pages/Agenda'
 
 function PrivateRoute({ children }: { children: React.ReactElement }) {
   const token = localStorage.getItem('token')
@@ -30,6 +31,7 @@ function App() {
         <Route path="/verify-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/routines" element={<PrivateRoute><Routines /></PrivateRoute>} />
+        <Route path="/agenda" element={<PrivateRoute><Agenda /></PrivateRoute>} />
         <Route path="/history" element={<PrivateRoute><History /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
         <Route path="/ranking" element={<PrivateRoute><Ranking /></PrivateRoute>} />

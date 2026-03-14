@@ -16,4 +16,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByRoutineIdAndUserId(Long routineId, Long userId);
     List<Task> findByUserIdAndRecurrent(Long userId, boolean recurrent);
     Optional<Task> findByIdAndUserId(Long id, Long userId);
+    List<Task> findByUserIdAndDueDateBetween(Long userId, LocalDate start, LocalDate end);
+    List<Task> findByUserIdAndAgendaEvent(Long userId, boolean agendaEvent);
 }

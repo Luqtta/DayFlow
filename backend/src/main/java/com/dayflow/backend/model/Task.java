@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "tasks")
@@ -27,9 +28,15 @@ public class Task {
     @Column(name = "due_date")
     private LocalDate dueDate;
 
+    @Column(name = "due_time")
+    private LocalTime dueTime;
+
+    @Column(name = "agenda_event", nullable = false)
+    private boolean agendaEvent = false;
+
     @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "routine_id", nullable = false)
+    @JoinColumn(name = "routine_id")
     private Routine routine;
 
     @JsonIgnore
@@ -65,6 +72,12 @@ public class Task {
 
     public LocalDate getDueDate() { return dueDate; }
     public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
+
+    public LocalTime getDueTime() { return dueTime; }
+    public void setDueTime(LocalTime dueTime) { this.dueTime = dueTime; }
+
+    public boolean isAgendaEvent() { return agendaEvent; }
+    public void setAgendaEvent(boolean agendaEvent) { this.agendaEvent = agendaEvent; }
 
     public Routine getRoutine() { return routine; }
     public void setRoutine(Routine routine) { this.routine = routine; }

@@ -27,17 +27,23 @@ public class TaskService {
 
     public Task create(TaskRequest request, String email) {
         User user = userService.findByEmail(email);
-        Routine routine = routineService.findById(request.getRoutineId(), email);
 
         Task task = new Task();
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setRecurrent(request.isRecurrent());
-        task.setRoutine(routine);
+        task.setAgendaEvent(request.isAgendaEvent());
+        task.setDueTime(request.getDueTime());
         task.setUser(user);
 
-        if (!request.isRecurrent()) {
+        if (request.isAgendaEvent()) {
             task.setDueDate(request.getDueDate());
+        } else {
+            Routine routine = routineService.findById(request.getRoutineId(), email);
+            task.setRoutine(routine);
+            if (!request.isRecurrent()) {
+                task.setDueDate(request.getDueDate());
+            }
         }
 
         return taskRepository.save(task);
@@ -64,9 +70,35 @@ public class TaskService {
         return result;
     }
 
+    public List<Task> findByDate(String email, LocalDate date) {
+        User user = userService.findByEmail(email);
+
+        List<Task> dateTasks = taskRepository.findByUserIdAndDueDate(user.getId(), date);
+        List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
+
+        List<Task> result = new ArrayList<>(dateTasks);
+        result.addAll(recurrentTasks);
+
+        result.sort((a, b) -> {
+            if (a.getDueTime() == null && b.getDueTime() == null) return 0;
+            if (a.getDueTime() == null) return 1;
+            if (b.getDueTime() == null) return -1;
+            return a.getDueTime().compareTo(b.getDueTime());
+        });
+
+        return result;
+    }
+
     public List<Task> findAll(String email) {
         User user = userService.findByEmail(email);
         return taskRepository.findByUserId(user.getId());
+    }
+
+    public List<Task> findByMonth(String email, int year, int month) {
+        User user = userService.findByEmail(email);
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
+        return taskRepository.findByUserIdAndDueDateBetween(user.getId(), start, end);
     }
 
     public Task complete(Long id, String email) {
@@ -88,6 +120,7 @@ public class TaskService {
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setRecurrent(request.isRecurrent());
+        task.setDueTime(request.getDueTime());
 
         if (!request.isRecurrent()) {
             task.setDueDate(request.getDueDate());

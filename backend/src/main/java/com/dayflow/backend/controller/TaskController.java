@@ -12,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -47,6 +48,20 @@ public class TaskController {
     @GetMapping("/today")
     public ResponseEntity<List<Task>> findToday(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(taskService.findToday(userDetails.getUsername()));
+    }
+
+    @GetMapping("/date")
+    public ResponseEntity<List<Task>> findByDate(@RequestParam String date,
+                                                  @AuthenticationPrincipal UserDetails userDetails) {
+        LocalDate localDate = LocalDate.parse(date);
+        return ResponseEntity.ok(taskService.findByDate(userDetails.getUsername(), localDate));
+    }
+
+    @GetMapping("/month")
+    public ResponseEntity<List<Task>> findByMonth(@RequestParam int year,
+                                                   @RequestParam int month,
+                                                   @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(taskService.findByMonth(userDetails.getUsername(), year, month));
     }
 
     @GetMapping("/routine/{routineId}")
