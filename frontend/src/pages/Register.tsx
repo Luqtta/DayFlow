@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Eye, EyeOff } from 'lucide-react'
@@ -12,6 +12,7 @@ function containsBadWord(text: string) {
 
 export default function Register() {
   const navigate = useNavigate()
+  const submitting = useRef(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,6 +26,7 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submitting.current) return
 
     if (!name || !email || !password || !confirmPassword) {
       toast.error('Preencha todos os campos!')
@@ -51,6 +53,7 @@ export default function Register() {
       return
     }
 
+    submitting.current = true
     setLoading(true)
     try {
       const response = await fetch('https://dayflow-production-724d.up.railway.app/auth/register', {
@@ -65,6 +68,7 @@ export default function Register() {
     } catch {
       toast.error('Erro ao conectar com o servidor!')
     } finally {
+      submitting.current = false
       setLoading(false)
     }
   }

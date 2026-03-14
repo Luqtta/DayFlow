@@ -14,8 +14,11 @@ public class EmailService {
     @Value("${brevo.api-key}")
     private String apiKey;
 
-    private static final String FROM_EMAIL = "dayflow.noreply@gmail.com";
-    private static final String FROM_NAME = "DayFlow";
+    @Value("${brevo.from-email}")
+    private String fromEmail;
+
+    @Value("${brevo.from-name}")
+    private String fromName;
 
     private void sendEmail(String to, String subject, String htmlContent) {
         try {
@@ -26,7 +29,7 @@ public class EmailService {
                     "subject": "%s",
                     "htmlContent": "%s"
                 }
-                """, FROM_EMAIL, FROM_NAME, to, subject, htmlContent.replace("\"", "\\\"").replace("\n", "\\n"));
+                """, fromEmail, fromName, to, subject, htmlContent.replace("\"", "\\\"").replace("\n", "\\n"));
 
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.brevo.com/v3/smtp/email"))

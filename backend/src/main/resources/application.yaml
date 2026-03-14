@@ -22,3 +22,5 @@ server:
 
 brevo:
   api-key: ${BREVO_API_KEY}
+  from-email: ${BREVO_FROM_EMAIL}
+  from-name: ${BREVO_FROM_NAME}
