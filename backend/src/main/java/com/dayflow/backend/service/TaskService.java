@@ -76,6 +76,16 @@ public class TaskService {
         List<Task> dateTasks = taskRepository.findByUserIdAndDueDate(user.getId(), date);
         List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
 
+        // Reset recorrentes se foram concluídas em outro dia
+        recurrentTasks.forEach(task -> {
+            if (task.getCompletedAt() != null &&
+                !task.getCompletedAt().toLocalDate().equals(date)) {
+                task.setCompleted(false);
+                task.setCompletedAt(null);
+                taskRepository.save(task);
+            }
+        });
+
         List<Task> result = new ArrayList<>(dateTasks);
         result.addAll(recurrentTasks);
 
@@ -105,10 +115,8 @@ public class TaskService {
         User user = userService.findByEmail(email);
         Task task = taskRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new RuntimeException("Tarefa não encontrada!"));
-
         task.setCompleted(true);
         task.setCompletedAt(LocalDateTime.now());
-
         return taskRepository.save(task);
     }
 

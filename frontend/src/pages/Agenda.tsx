@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ChevronLeft, ChevronRight, Plus, X, Clock, CheckCircle2, Circle, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Clock, CheckCircle2, Circle, Trash2, Pencil } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 import UserMenu from '../components/UserMenu'
 
@@ -32,6 +32,7 @@ export default function Agenda() {
   const [dayTasks, setDayTasks] = useState<Task[]>([])
   const [loadingDay, setLoadingDay] = useState(false)
   const [showModal, setShowModal] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [visible, setVisible] = useState(false)
   const creating = useRef(false)
 
@@ -42,15 +43,19 @@ export default function Agenda() {
     dueTime: '',
   })
 
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    dueDate: '',
+    dueTime: '',
+  })
+
   useEffect(() => {
     if (!token) { navigate('/login'); return }
     setTimeout(() => setVisible(true), 100)
   }, [])
 
-  useEffect(() => {
-    fetchMonthTasks()
-  }, [currentYear, currentMonth])
-
+  useEffect(() => { fetchMonthTasks() }, [currentYear, currentMonth])
   useEffect(() => {
     fetchDayTasks()
     setForm(f => ({ ...f, dueDate: selectedDate }))
@@ -62,11 +67,8 @@ export default function Agenda() {
         `https://dayflow-production-724d.up.railway.app/tasks/month?year=${currentYear}&month=${currentMonth + 1}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       )
-      const data = await res.json()
-      setMonthTasks(data)
-    } catch {
-      toast.error('Erro ao carregar agenda!')
-    }
+      setMonthTasks(await res.json())
+    } catch { toast.error('Erro ao carregar agenda!') }
   }
 
   const fetchDayTasks = async () => {
@@ -76,13 +78,9 @@ export default function Agenda() {
         `https://dayflow-production-724d.up.railway.app/tasks/date?date=${selectedDate}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       )
-      const data = await res.json()
-      setDayTasks(data)
-    } catch {
-      toast.error('Erro ao carregar tarefas do dia!')
-    } finally {
-      setLoadingDay(false)
-    }
+      setDayTasks(await res.json())
+    } catch { toast.error('Erro ao carregar tarefas do dia!') }
+    finally { setLoadingDay(false) }
   }
 
   const createEvent = async () => {
@@ -108,11 +106,42 @@ export default function Agenda() {
       setForm({ title: '', description: '', dueDate: selectedDate, dueTime: '' })
       fetchDayTasks()
       fetchMonthTasks()
-    } catch {
-      toast.error('Erro ao criar evento!')
-    } finally {
-      creating.current = false
-    }
+    } catch { toast.error('Erro ao criar evento!') }
+    finally { creating.current = false }
+  }
+
+  const openEdit = (task: Task) => {
+    setEditingTask(task)
+    setEditForm({
+      title: task.title,
+      description: task.description || '',
+      dueDate: task.dueDate,
+      dueTime: task.dueTime ? task.dueTime.slice(0, 5) : '',
+    })
+  }
+
+  const saveEdit = async () => {
+    if (!editingTask) return
+    if (!editForm.title.trim()) { toast.error('Título é obrigatório!'); return }
+    try {
+      const res = await fetch(`https://dayflow-production-724d.up.railway.app/tasks/${editingTask.id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editForm.title.trim(),
+          description: editForm.description,
+          dueDate: editForm.dueDate,
+          dueTime: editForm.dueTime || null,
+          agendaEvent: true,
+          recurrent: false
+        })
+      })
+      if (!res.ok) { toast.error('Erro ao editar evento!'); return }
+      toast.success('Evento atualizado! 🎉')
+      setEditingTask(null)
+      fetchDayTasks()
+      fetchMonthTasks()
+    } catch { toast.error('Erro ao editar evento!') }
   }
 
   const completeTask = async (id: number) => {
@@ -123,9 +152,7 @@ export default function Agenda() {
       })
       setDayTasks(prev => prev.map(t => t.id === id ? { ...t, completed: true } : t))
       toast.success('Tarefa concluída! 🎉')
-    } catch {
-      toast.error('Erro ao concluir tarefa!')
-    }
+    } catch { toast.error('Erro ao concluir tarefa!') }
   }
 
   const deleteTask = async (id: number) => {
@@ -137,9 +164,7 @@ export default function Agenda() {
       setDayTasks(prev => prev.filter(t => t.id !== id))
       fetchMonthTasks()
       toast.success('Evento deletado!')
-    } catch {
-      toast.error('Erro ao deletar evento!')
-    }
+    } catch { toast.error('Erro ao deletar evento!') }
   }
 
   const prevMonth = () => {
@@ -166,11 +191,7 @@ export default function Agenda() {
     return `${currentYear}-${m}-${d}`
   }
 
-  const hasTasksOnDay = (day: number) => {
-    const dateStr = getDateStr(day)
-    return monthTasks.some(t => t.dueDate === dateStr)
-  }
-
+  const hasTasksOnDay = (day: number) => monthTasks.some(t => t.dueDate === getDateStr(day))
   const isToday = (day: number) => getDateStr(day) === today.toISOString().split('T')[0]
   const isSelected = (day: number) => getDateStr(day) === selectedDate
 
@@ -191,10 +212,8 @@ export default function Agenda() {
             <p className="text-white/40 text-sm">Organize seus compromissos</p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl transition hover:scale-[1.02]"
-            >
+            <button onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl transition hover:scale-[1.02]">
               <Plus size={18} />
               <span className="hidden sm:inline">Novo evento</span>
             </button>
@@ -207,39 +226,31 @@ export default function Agenda() {
           {/* Calendário */}
           <div className="lg:w-96 flex-shrink-0">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-
-              {/* Header do mês */}
               <div className="flex items-center justify-between mb-6">
                 <button onClick={prevMonth} className="text-white/50 hover:text-white transition p-1 rounded-lg hover:bg-white/10">
                   <ChevronLeft size={20} />
                 </button>
-                <h3 className="text-white font-semibold text-lg">
-                  {MONTHS[currentMonth]} {currentYear}
-                </h3>
+                <h3 className="text-white font-semibold text-lg">{MONTHS[currentMonth]} {currentYear}</h3>
                 <button onClick={nextMonth} className="text-white/50 hover:text-white transition p-1 rounded-lg hover:bg-white/10">
                   <ChevronRight size={20} />
                 </button>
               </div>
 
-              {/* Dias da semana */}
               <div className="grid grid-cols-7 mb-2">
                 {WEEKDAYS.map(d => (
                   <div key={d} className="text-center text-white/30 text-xs font-medium py-1">{d}</div>
                 ))}
               </div>
 
-              {/* Dias */}
               <div className="grid grid-cols-7 gap-1">
                 {getDaysInMonth().map((day, idx) => (
                   <div key={idx} className="aspect-square">
                     {day ? (
-                      <button
-                        onClick={() => setSelectedDate(getDateStr(day))}
+                      <button onClick={() => setSelectedDate(getDateStr(day))}
                         className={`w-full h-full flex flex-col items-center justify-center rounded-xl text-sm transition relative
                           ${isSelected(day) ? 'bg-purple-600 text-white font-semibold' :
                             isToday(day) ? 'bg-purple-600/20 text-purple-300 font-semibold' :
-                            'text-white/70 hover:bg-white/10'}`}
-                      >
+                            'text-white/70 hover:bg-white/10'}`}>
                         {day}
                         {hasTasksOnDay(day) && !isSelected(day) && (
                           <div className="absolute bottom-1 w-1 h-1 rounded-full bg-purple-400" />
@@ -252,15 +263,13 @@ export default function Agenda() {
             </div>
           </div>
 
-          {/* Tarefas do dia selecionado */}
+          {/* Tarefas do dia */}
           <div className="flex-1">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold capitalize">{selectedDateLabel()}</h3>
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="text-purple-400 hover:text-purple-300 transition text-sm flex items-center gap-1"
-                >
+                <button onClick={() => setShowModal(true)}
+                  className="text-purple-400 hover:text-purple-300 transition text-sm flex items-center gap-1">
                   <Plus size={16} /> Adicionar
                 </button>
               </div>
@@ -278,11 +287,8 @@ export default function Agenda() {
                     <div key={task.id}
                       className={`flex items-center gap-3 p-4 rounded-xl border transition
                         ${task.completed ? 'bg-green-500/10 border-green-500/20' : 'bg-white/5 border-white/10'}`}>
-                      <button
-                        onClick={() => !task.completed && completeTask(task.id)}
-                        disabled={task.completed}
-                        className="flex-shrink-0"
-                      >
+                      <button onClick={() => !task.completed && completeTask(task.id)}
+                        disabled={task.completed} className="flex-shrink-0">
                         {task.completed
                           ? <CheckCircle2 size={22} className="text-green-400" />
                           : <Circle size={22} className="text-white/30 hover:text-purple-400 transition" />
@@ -292,7 +298,7 @@ export default function Agenda() {
                         <p className={`font-medium text-sm truncate ${task.completed ? 'line-through text-white/40' : 'text-white'}`}>
                           {task.title}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           {task.dueTime && (
                             <span className="text-purple-300 text-xs flex items-center gap-1">
                               <Clock size={10} /> {task.dueTime.slice(0, 5)}
@@ -310,10 +316,16 @@ export default function Agenda() {
                         </div>
                       </div>
                       {task.agendaEvent && !task.completed && (
-                        <button onClick={() => deleteTask(task.id)}
-                          className="text-red-400/50 hover:text-red-400 transition p-1 rounded-lg hover:bg-red-500/10 flex-shrink-0">
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button onClick={() => openEdit(task)}
+                            className="text-white/30 hover:text-purple-400 transition p-1 rounded-lg hover:bg-purple-500/10">
+                            <Pencil size={14} />
+                          </button>
+                          <button onClick={() => deleteTask(task.id)}
+                            className="text-red-400/50 hover:text-red-400 transition p-1 rounded-lg hover:bg-red-500/10">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -337,47 +349,73 @@ export default function Agenda() {
             <div className="space-y-4">
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Título</label>
-                <input
-                  value={form.title}
-                  onChange={e => setForm({ ...form, title: e.target.value })}
+                <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
                   placeholder="Ex: Consulta médica"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition"
-                />
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition" />
               </div>
               <div>
                 <label className="text-purple-200 text-sm mb-1 block">Descrição (opcional)</label>
-                <input
-                  value={form.description}
-                  onChange={e => setForm({ ...form, description: e.target.value })}
+                <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
                   placeholder="Ex: Dr. João - Clínica São Lucas"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition"
-                />
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-purple-200 text-sm mb-1 block">Data</label>
-                  <input
-                    type="date"
-                    value={form.dueDate}
-                    onChange={e => setForm({ ...form, dueDate: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
-                  />
+                  <input type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
                 </div>
                 <div>
                   <label className="text-purple-200 text-sm mb-1 block">Horário (opcional)</label>
-                  <input
-                    type="time"
-                    value={form.dueTime}
-                    onChange={e => setForm({ ...form, dueTime: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition"
-                  />
+                  <input type="time" value={form.dueTime} onChange={e => setForm({ ...form, dueTime: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
                 </div>
               </div>
-              <button
-                onClick={createEvent}
-                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition"
-              >
+              <button onClick={createEvent}
+                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition">
                 Criar evento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal editar evento */}
+      {editingTask && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1030] border border-white/20 rounded-2xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white font-semibold text-lg">Editar evento</h3>
+              <button onClick={() => setEditingTask(null)} className="text-white/50 hover:text-white transition">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-purple-200 text-sm mb-1 block">Título</label>
+                <input value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })}
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+              </div>
+              <div>
+                <label className="text-purple-200 text-sm mb-1 block">Descrição (opcional)</label>
+                <input value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-purple-200 text-sm mb-1 block">Data</label>
+                  <input type="date" value={editForm.dueDate} onChange={e => setEditForm({ ...editForm, dueDate: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+                </div>
+                <div>
+                  <label className="text-purple-200 text-sm mb-1 block">Horário (opcional)</label>
+                  <input type="time" value={editForm.dueTime} onChange={e => setEditForm({ ...editForm, dueTime: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+                </div>
+              </div>
+              <button onClick={saveEdit}
+                className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition">
+                Salvar alterações
               </button>
             </div>
           </div>
