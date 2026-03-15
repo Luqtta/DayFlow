@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,6 +26,14 @@ public class TaskService {
 
     @Autowired
     private RoutineService routineService;
+
+    // Converte completedAt (UTC no banco) para data no fuso de Brasília
+    private LocalDate completedAtToBrasiliaDate(LocalDateTime completedAt) {
+        if (completedAt == null) return null;
+        return completedAt.atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(ZoneId.of("America/Sao_Paulo"))
+                .toLocalDate();
+    }
 
     public Task create(TaskRequest request, String email) {
         User user = userService.findByEmail(email);
@@ -57,8 +66,8 @@ public class TaskService {
         List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
 
         recurrentTasks.forEach(task -> {
-            if (task.getCompletedAt() != null &&
-                !task.getCompletedAt().toLocalDate().equals(today)) {
+            LocalDate completedDate = completedAtToBrasiliaDate(task.getCompletedAt());
+            if (completedDate != null && !completedDate.equals(today)) {
                 task.setCompleted(false);
                 task.setCompletedAt(null);
                 taskRepository.save(task);
@@ -78,8 +87,8 @@ public class TaskService {
 
         if (date.equals(today)) {
             recurrentTasks.forEach(task -> {
-                if (task.getCompletedAt() != null &&
-                    !task.getCompletedAt().toLocalDate().equals(today)) {
+                LocalDate completedDate = completedAtToBrasiliaDate(task.getCompletedAt());
+                if (completedDate != null && !completedDate.equals(today)) {
                     task.setCompleted(false);
                     task.setCompletedAt(null);
                     taskRepository.save(task);
