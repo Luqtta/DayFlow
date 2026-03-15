@@ -94,7 +94,7 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
     <>
       <div className="space-y-2 mt-3">
         {tasks.map(task => (
-          <div key={task.id} className="flex items-center gap-3 py-2 group">
+          <div key={task.id} className="flex items-center gap-3 py-2">
             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.completed ? 'bg-green-400' : 'bg-purple-400'}`} />
             <span className={`text-sm flex-1 ${task.completed ? 'line-through text-white/30' : 'text-white/70'}`}>
               {task.title}
@@ -111,7 +111,7 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
             ) : (
               <span className="text-white/20 text-xs">{task.dueDate}</span>
             )}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+              <div className="flex items-center gap-1">
               <button onClick={() => setEditingTask({ ...task })}
                 className="text-white/30 hover:text-purple-400 transition p-1 rounded-lg hover:bg-purple-500/10">
                 <Pencil size={13} />
