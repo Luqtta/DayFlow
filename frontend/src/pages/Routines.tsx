@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Plus, X, ChevronDown, ChevronUp, Trash2, RefreshCw, Pencil } from 'lucide-react'
+import { Plus, X, ChevronDown, ChevronUp, Trash2, RefreshCw, Pencil, Clock } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import Sidebar from '../components/Sidebar'
 import UserMenu from '../components/UserMenu'
@@ -12,6 +12,7 @@ interface Task {
   description: string
   completed: boolean
   dueDate: string
+  dueTime: string | null
   recurrent: boolean
 }
 
@@ -72,6 +73,7 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
           title: editingTask.title,
           description: editingTask.description,
           dueDate: editingTask.recurrent ? null : editingTask.dueDate,
+          dueTime: editingTask.dueTime || null,
           recurrent: editingTask.recurrent,
           routineId
         })
@@ -97,6 +99,11 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
             <span className={`text-sm flex-1 ${task.completed ? 'line-through text-white/30' : 'text-white/70'}`}>
               {task.title}
             </span>
+            {task.dueTime && (
+              <span className="text-purple-300/70 text-xs flex items-center gap-1">
+                <Clock size={10} /> {task.dueTime.slice(0, 5)}
+              </span>
+            )}
             {task.recurrent ? (
               <span className="text-purple-400/70 text-xs flex items-center gap-1">
                 <RefreshCw size={10} /> recorrente
@@ -126,13 +133,9 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
             <p className="text-white/40 text-sm mb-6">Essa tarefa será deletada permanentemente.</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDeleteTaskId(null)}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl transition">
-                Cancelar
-              </button>
+                className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl transition">Cancelar</button>
               <button onClick={() => deleteTask(confirmDeleteTaskId)}
-                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold py-3 rounded-xl transition">
-                Deletar
-              </button>
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold py-3 rounded-xl transition">Deletar</button>
             </div>
           </div>
         </div>,
@@ -159,6 +162,12 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
                 <label className="text-purple-200 text-sm mb-1 block">Descrição (opcional)</label>
                 <input value={editingTask.description || ''}
                   onChange={e => setEditingTask({ ...editingTask, description: e.target.value })}
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+              </div>
+              <div>
+                <label className="text-purple-200 text-sm mb-1 block">Horário (opcional)</label>
+                <input type="time" value={editingTask.dueTime ? editingTask.dueTime.slice(0, 5) : ''}
+                  onChange={e => setEditingTask({ ...editingTask, dueTime: e.target.value || null })}
                   className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
               </div>
               <div onClick={() => setEditingTask({ ...editingTask, recurrent: !editingTask.recurrent, dueDate: '' })}
@@ -213,7 +222,7 @@ export default function Routines() {
   const [selectedRoutineId, setSelectedRoutineId] = useState<number | null>(null)
 
   const [routineForm, setRoutineForm] = useState({ title: '', description: '', category: 'estudo' })
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', dueDate: '', recurrent: false })
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', dueDate: '', dueTime: '', recurrent: false })
 
   const creatingRoutine = useRef(false)
   const creatingTask = useRef(false)
@@ -305,12 +314,19 @@ export default function Routines() {
       const response = await fetch('https://dayflow-production-724d.up.railway.app/tasks', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...taskForm, routineId: selectedRoutineId })
+        body: JSON.stringify({
+          title: taskForm.title,
+          description: taskForm.description,
+          dueDate: taskForm.dueDate || null,
+          dueTime: taskForm.dueTime || null,
+          recurrent: taskForm.recurrent,
+          routineId: selectedRoutineId
+        })
       })
       if (!response.ok) { toast.error('Erro ao criar tarefa!'); return }
       toast.success('Tarefa criada! 🎉')
       setShowTaskModal(false)
-      setTaskForm({ title: '', description: '', dueDate: '', recurrent: false })
+      setTaskForm({ title: '', description: '', dueDate: '', dueTime: '', recurrent: false })
       setRefreshKeys(prev => ({ ...prev, [selectedRoutineId!]: (prev[selectedRoutineId!] || 0) + 1 }))
       setExpandedRoutine(selectedRoutineId)
     } catch {
@@ -539,6 +555,12 @@ export default function Routines() {
                   onChange={e => setTaskForm({ ...taskForm, description: e.target.value })}
                   placeholder="Ex: Estudar JPA e Hibernate"
                   className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition" />
+              </div>
+              <div>
+                <label className="text-purple-200 text-sm mb-1 block">Horário (opcional)</label>
+                <input type="time" value={taskForm.dueTime}
+                  onChange={e => setTaskForm({ ...taskForm, dueTime: e.target.value })}
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
               </div>
               <div onClick={() => setTaskForm({ ...taskForm, recurrent: !taskForm.recurrent, dueDate: '' })}
                 className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition
