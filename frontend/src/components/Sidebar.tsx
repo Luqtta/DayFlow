@@ -11,11 +11,11 @@ export default function Sidebar() {
   const isActive = (path: string) => location.pathname === path
 
   const navItems = [
-    { path: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
-    { path: '/routines', icon: <ListTodo size={18} />, label: 'Rotinas' },
-    { path: '/agenda', icon: <CalendarDays size={18} />, label: 'Agenda' },
-    { path: '/history', icon: <TrendingUp size={18} />, label: 'Histórico' },
-    { path: '/ranking', icon: <Trophy size={18} />, label: 'Ranking' },
+    { path: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+    { path: '/routines', icon: <ListTodo size={20} />, label: 'Rotinas' },
+    { path: '/agenda', icon: <CalendarDays size={20} />, label: 'Agenda' },
+    { path: '/history', icon: <TrendingUp size={20} />, label: 'Histórico' },
+    { path: '/ranking', icon: <Trophy size={20} />, label: 'Ranking' },
   ]
 
   return (
@@ -58,21 +58,19 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* Bottom navigation mobile */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f0a1e]/95 backdrop-blur border-t border-white/10 flex items-center justify-around px-2 py-2">
+      {/* Bottom navigation mobile — só ícones sem label */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f0a1e]/95 backdrop-blur border-t border-white/10 flex items-center justify-around px-1 py-3">
         {navItems.map(item => (
           <button key={item.path} onClick={() => navigate(item.path)}
-            className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition
-              ${isActive(item.path) ? 'text-purple-400' : 'text-white/40 hover:text-white'}`}>
+            className={`flex items-center justify-center w-10 h-10 rounded-xl transition
+              ${isActive(item.path) ? 'text-purple-400 bg-purple-600/20' : 'text-white/40 hover:text-white'}`}>
             {item.icon}
-            <span className="text-[10px] font-medium">{item.label}</span>
           </button>
         ))}
         <button onClick={() => navigate('/settings')}
-          className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition
-            ${isActive('/settings') ? 'text-purple-400' : 'text-white/40 hover:text-white'}`}>
-          <User size={18} />
-          <span className="text-[10px] font-medium">Perfil</span>
+          className={`flex items-center justify-center w-10 h-10 rounded-xl transition
+            ${isActive('/settings') ? 'text-purple-400 bg-purple-600/20' : 'text-white/40 hover:text-white'}`}>
+          <User size={20} />
         </button>
       </nav>
     </>
