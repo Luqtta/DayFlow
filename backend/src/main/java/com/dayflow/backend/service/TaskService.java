@@ -50,9 +50,8 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
-    public List<Task> findToday(String email) {
+    public List<Task> findToday(String email, LocalDate today) {
         User user = userService.findByEmail(email);
-        LocalDate today = LocalDate.now();
 
         List<Task> todayTasks = taskRepository.findByUserIdAndDueDate(user.getId(), today);
         List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
@@ -71,15 +70,13 @@ public class TaskService {
         return result;
     }
 
-    public List<Task> findByDate(String email, LocalDate date) {
+    public List<Task> findByDate(String email, LocalDate date, LocalDate today) {
         User user = userService.findByEmail(email);
-        LocalDate today = LocalDate.now();
 
         List<Task> dateTasks = taskRepository.findByUserIdAndDueDate(user.getId(), date);
         List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
 
         if (date.equals(today)) {
-            // Hoje: reseta tarefas concluídas em outro dia
             recurrentTasks.forEach(task -> {
                 if (task.getCompletedAt() != null &&
                     !task.getCompletedAt().toLocalDate().equals(today)) {
@@ -89,7 +86,6 @@ public class TaskService {
                 }
             });
         } else if (date.isAfter(today)) {
-            // Dias futuros: mostra recorrentes sempre como não concluídas (sem salvar)
             recurrentTasks = recurrentTasks.stream().map(task -> {
                 Task copy = new Task();
                 copy.setId(task.getId());
@@ -104,7 +100,6 @@ public class TaskService {
                 return copy;
             }).collect(Collectors.toList());
         }
-        // Dias passados: mostra o status real (como estava naquele dia)
 
         List<Task> result = new ArrayList<>(dateTasks);
         result.addAll(recurrentTasks);

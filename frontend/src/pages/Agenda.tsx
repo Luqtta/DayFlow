@@ -66,7 +66,7 @@ export default function Agenda() {
     setLoadingDay(true)
     try {
       const res = await fetch(
-        `https://dayflow-production-724d.up.railway.app/tasks/date?date=${selectedDate}`,
+        `https://dayflow-production-724d.up.railway.app/tasks/date?date=${selectedDate}&today=${todayStr}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       )
       setDayTasks(await res.json())

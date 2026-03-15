@@ -58,7 +58,7 @@ export default function Dashboard() {
   const fetchAll = async () => {
     try {
       const [tasksRes, scoreRes, rankingRes] = await Promise.all([
-        fetch('https://dayflow-production-724d.up.railway.app/tasks/today', {
+        fetch(`https://dayflow-production-724d.up.railway.app/tasks/today?today=${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('https://dayflow-production-724d.up.railway.app/score/me', {

@@ -46,15 +46,19 @@ public class TaskController {
     }
 
     @GetMapping("/today")
-    public ResponseEntity<List<Task>> findToday(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(taskService.findToday(userDetails.getUsername()));
+    public ResponseEntity<List<Task>> findToday(@RequestParam(required = false) String today,
+                                                 @AuthenticationPrincipal UserDetails userDetails) {
+        LocalDate todayDate = today != null ? LocalDate.parse(today) : LocalDate.now();
+        return ResponseEntity.ok(taskService.findToday(userDetails.getUsername(), todayDate));
     }
 
     @GetMapping("/date")
     public ResponseEntity<List<Task>> findByDate(@RequestParam String date,
+                                                  @RequestParam(required = false) String today,
                                                   @AuthenticationPrincipal UserDetails userDetails) {
         LocalDate localDate = LocalDate.parse(date);
-        return ResponseEntity.ok(taskService.findByDate(userDetails.getUsername(), localDate));
+        LocalDate todayDate = today != null ? LocalDate.parse(today) : LocalDate.now();
+        return ResponseEntity.ok(taskService.findByDate(userDetails.getUsername(), localDate, todayDate));
     }
 
     @GetMapping("/month")
