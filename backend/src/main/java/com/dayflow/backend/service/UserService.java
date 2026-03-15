@@ -116,6 +116,39 @@ public class UserService {
         emailService.sendVerificationCode(email, user.getName(), code);
     }
 
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email não encontrado!"));
+
+        String code = generateVerificationCode();
+        user.setVerificationCode(code);
+        user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        emailService.sendPasswordResetCode(email, user.getName(), code);
+    }
+
+    public void resetPassword(String email, String code, String newPassword) {
+        User user = findByEmail(email);
+
+        if (user.getVerificationCode() == null || !user.getVerificationCode().equals(code)) {
+            throw new RuntimeException("Código inválido!");
+        }
+        if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Código expirado! Solicite um novo.");
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new RuntimeException("A senha deve ter pelo menos 6 caracteres!");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiresAt(null);
+        userRepository.save(user);
+
+        emailService.sendPasswordChangeAlert(email, user.getName());
+    }
+
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email ou senha inválidos!"));

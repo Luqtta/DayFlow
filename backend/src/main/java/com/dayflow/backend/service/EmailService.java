@@ -62,6 +62,21 @@ public class EmailService {
         sendEmail(to, "Verifique sua conta DayFlow 🌊", html);
     }
 
+    public void sendPasswordResetCode(String to, String name, String code) {
+        String html = "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f0a1e;padding:40px;border-radius:16px'>" +
+            "<h1 style='color:#a855f7;font-size:28px;margin-bottom:8px'>DayFlow</h1>" +
+            "<p style='color:#e2d9f3;font-size:16px'>Olá, <b>" + name + "</b>!</p>" +
+            "<p style='color:#c4b5fd;font-size:15px'>Você solicitou a redefinição da sua senha. Use o código abaixo:</p>" +
+            "<div style='background:#1a1030;border:2px solid #7c3aed;border-radius:12px;padding:24px;text-align:center;margin:24px 0'>" +
+            "<span style='color:#ffffff;font-size:40px;font-weight:bold;letter-spacing:12px'>" + code + "</span>" +
+            "</div>" +
+            "<p style='color:#6b7280;font-size:13px'>Este código expira em <b>15 minutos</b>.</p>" +
+            "<p style='color:#6b7280;font-size:13px'>Se você não solicitou a redefinição de senha, ignore este email.</p>" +
+            "</div>";
+
+        sendEmail(to, "Redefinir senha — DayFlow", html);
+    }
+
     public void sendWelcome(String to, String name) {
         String html = "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f0a1e;padding:40px;border-radius:16px'>" +
             "<h1 style='color:#a855f7;font-size:28px;margin-bottom:8px'>DayFlow 🌊</h1>" +

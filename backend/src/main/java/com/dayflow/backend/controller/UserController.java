@@ -58,6 +58,30 @@ public class UserController {
         }
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        try {
+            userService.forgotPassword(body.get("email"));
+            return ResponseEntity.ok(Map.of("message", "Código enviado para seu email!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        try {
+            userService.resetPassword(
+                body.get("email"),
+                body.get("code"),
+                body.get("newPassword")
+            );
+            return ResponseEntity.ok(Map.of("message", "Senha redefinida com sucesso!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
