@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/routines")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"https://day-flow-eta.vercel.app", "http://localhost:5173"})
 public class RoutineController {
 
     @Autowired

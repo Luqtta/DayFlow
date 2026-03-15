@@ -11,7 +11,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class UserService {
@@ -27,6 +30,13 @@ public class UserService {
 
     @Autowired
     private EmailService emailService;
+
+    // Rate limiting — tentativas de login por email
+    private final Map<String, AtomicInteger> loginAttempts = new ConcurrentHashMap<>();
+    private final Map<String, LocalDateTime> loginBlockedUntil = new ConcurrentHashMap<>();
+
+    private static final int MAX_LOGIN_ATTEMPTS = 5;
+    private static final int BLOCK_MINUTES = 15;
 
     private static final List<String> BAD_WORDS = List.of(
         "puta", "merda", "corno", "viado", "buceta", "caralho",
@@ -54,12 +64,46 @@ public class UserService {
         }
     }
 
+    private void validateEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new RuntimeException("Email é obrigatório!");
+        }
+        if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+            throw new RuntimeException("Email inválido!");
+        }
+    }
+
+    private void checkLoginRateLimit(String email) {
+        LocalDateTime blockedUntil = loginBlockedUntil.get(email);
+        if (blockedUntil != null && LocalDateTime.now().isBefore(blockedUntil)) {
+            long minutesLeft = java.time.Duration.between(LocalDateTime.now(), blockedUntil).toMinutes() + 1;
+            throw new RuntimeException("Muitas tentativas. Tente novamente em " + minutesLeft + " minuto(s)!");
+        }
+
+        AtomicInteger attempts = loginAttempts.computeIfAbsent(email, k -> new AtomicInteger(0));
+        if (attempts.incrementAndGet() >= MAX_LOGIN_ATTEMPTS) {
+            loginBlockedUntil.put(email, LocalDateTime.now().plusMinutes(BLOCK_MINUTES));
+            loginAttempts.remove(email);
+            throw new RuntimeException("Muitas tentativas. Conta bloqueada por " + BLOCK_MINUTES + " minutos!");
+        }
+    }
+
+    private void clearLoginAttempts(String email) {
+        loginAttempts.remove(email);
+        loginBlockedUntil.remove(email);
+    }
+
     private String generateVerificationCode() {
         return String.format("%06d", new Random().nextInt(999999));
     }
 
     public User register(String name, String email, String password) {
         validateName(name);
+        validateEmail(email);
+
+        if (password == null || password.length() < 6) {
+            throw new RuntimeException("A senha deve ter pelo menos 6 caracteres!");
+        }
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email já cadastrado!");
         }
@@ -68,7 +112,7 @@ public class UserService {
 
         User user = new User();
         user.setName(name.trim());
-        user.setEmail(email);
+        user.setEmail(email.trim().toLowerCase());
         user.setPassword(passwordEncoder.encode(password));
         user.setEmailVerified(false);
         user.setVerificationCode(code);
@@ -150,6 +194,8 @@ public class UserService {
     }
 
     public LoginResponse login(LoginRequest request) {
+        checkLoginRateLimit(request.getEmail());
+
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Email ou senha inválidos!"));
 
@@ -157,9 +203,11 @@ public class UserService {
             throw new RuntimeException("Email ou senha inválidos!");
         }
         if (!user.isEmailVerified()) {
+            clearLoginAttempts(request.getEmail());
             throw new RuntimeException("EMAIL_NOT_VERIFIED");
         }
 
+        clearLoginAttempts(request.getEmail());
         String token = jwtService.generateToken(user.getEmail());
         return new LoginResponse(token, user.getName(), user.getEmail());
     }
@@ -193,6 +241,9 @@ public class UserService {
         User user = findByEmail(email);
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new RuntimeException("Senha atual incorreta!");
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new RuntimeException("A senha deve ter pelo menos 6 caracteres!");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
