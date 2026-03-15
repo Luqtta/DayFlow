@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
-  CheckCircle2, Circle, ListTodo, Sun, Trophy, TrendingUp, Flame
+  CheckCircle2, Circle, ListTodo, Sun, Trophy, TrendingUp, Flame, Clock
 } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 import UserMenu from '../components/UserMenu'
@@ -13,6 +13,7 @@ interface Task {
   description: string
   completed: boolean
   dueDate: string
+  dueTime: string | null
   completedAt: string | null
   createdAt: string
 }
@@ -49,6 +50,8 @@ export default function Dashboard() {
     : 0
   const completedCount = tasks.filter(t => t.completed).length
 
+  const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+
   useEffect(() => {
     if (!token) { navigate('/login'); return }
     fetchAll()
@@ -58,7 +61,7 @@ export default function Dashboard() {
   const fetchAll = async () => {
     try {
       const [tasksRes, scoreRes, rankingRes] = await Promise.all([
-        fetch(`https://dayflow-production-724d.up.railway.app/tasks/today?today=${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`, {
+        fetch(`https://dayflow-production-724d.up.railway.app/tasks/today?today=${todayStr}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('https://dayflow-production-724d.up.railway.app/score/me', {
@@ -139,16 +142,13 @@ export default function Dashboard() {
 
         <div className="flex-1 p-4 sm:p-6 space-y-4 sm:space-y-6">
 
-          {/* Cards de progresso do dia */}
           <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <div style={fadeUp(100)} className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5">
               <p className="text-white/50 text-xs sm:text-sm mb-1">Progresso</p>
               <p className="text-2xl sm:text-3xl font-bold text-white">{progress}%</p>
               <div className="mt-3 h-1.5 sm:h-2 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-purple-500 rounded-full transition-all duration-1000"
-                  style={{ width: visible ? `${progress}%` : '0%' }}
-                />
+                <div className="h-full bg-purple-500 rounded-full transition-all duration-1000"
+                  style={{ width: visible ? `${progress}%` : '0%' }} />
               </div>
             </div>
             <div style={fadeUp(200)} className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5">
@@ -163,14 +163,11 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Cards de desempenho e ranking */}
           {score && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               <div style={fadeUp(400)} className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5">
                 <p className="text-white/50 text-xs sm:text-sm mb-1">Grade</p>
-                <p className={`text-2xl sm:text-3xl font-black ${gradeColors[score.grade]}`}>
-                  {score.grade}
-                </p>
+                <p className={`text-2xl sm:text-3xl font-black ${gradeColors[score.grade]}`}>{score.grade}</p>
                 <p className="text-white/30 text-xs mt-1">{score.score}/100 pts</p>
               </div>
               <div style={fadeUp(500)} className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5">
@@ -187,11 +184,9 @@ export default function Dashboard() {
                 <p className="text-2xl sm:text-3xl font-bold text-purple-400">{score.avgPercentage}%</p>
                 <p className="text-white/30 text-xs mt-1">conclusão</p>
               </div>
-              <div
-                style={fadeUp(700)}
+              <div style={fadeUp(700)}
                 className="bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-5 cursor-pointer hover:bg-white/10 transition"
-                onClick={() => navigate('/ranking')}
-              >
+                onClick={() => navigate('/ranking')}>
                 <p className="text-white/50 text-xs sm:text-sm mb-1 flex items-center gap-1">
                   <Trophy size={12} className="text-yellow-400" /> Ranking
                 </p>
@@ -203,7 +198,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Checklist */}
           <div style={fadeUp(800)} className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6">
             <h3 className="text-white font-semibold text-base sm:text-lg mb-4 flex items-center gap-2">
               <ListTodo size={20} className="text-purple-400" />
@@ -216,34 +210,24 @@ export default function Dashboard() {
               <div className="text-center py-8">
                 <p className="text-white/40 text-sm">Nenhuma tarefa para hoje!</p>
                 <p className="text-white/20 text-xs mt-1">Crie uma rotina e adicione tarefas para hoje</p>
-                <button
-                  onClick={() => navigate('/routines')}
-                  className="mt-4 text-purple-400 hover:text-purple-300 text-sm transition"
-                >
+                <button onClick={() => navigate('/routines')}
+                  className="mt-4 text-purple-400 hover:text-purple-300 text-sm transition">
                   Ir para rotinas →
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
                 {tasks.map((task, index) => (
-                  <div
-                    key={task.id}
+                  <div key={task.id}
                     className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border transition-all duration-200
-                      ${task.completed
-                        ? 'bg-green-500/10 border-green-500/20'
-                        : 'bg-white/5 border-white/10 hover:bg-white/10'
-                      }`}
+                      ${task.completed ? 'bg-green-500/10 border-green-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
                     style={{
                       opacity: visible ? 1 : 0,
                       transform: visible ? 'translateY(0)' : 'translateY(10px)',
                       transition: `all 0.4s ease ${900 + index * 60}ms`
-                    }}
-                  >
-                    <button
-                      onClick={() => !task.completed && completeTask(task.id)}
-                      disabled={task.completed}
-                      className="flex-shrink-0 transition"
-                    >
+                    }}>
+                    <button onClick={() => !task.completed && completeTask(task.id)}
+                      disabled={task.completed} className="flex-shrink-0 transition">
                       {task.completed
                         ? <CheckCircle2 size={22} className="text-green-400" />
                         : <Circle size={22} className="text-white/30 hover:text-purple-400 transition" />
@@ -253,9 +237,16 @@ export default function Dashboard() {
                       <p className={`font-medium text-sm sm:text-base transition truncate ${task.completed ? 'line-through text-white/40' : 'text-white'}`}>
                         {task.title}
                       </p>
-                      {task.description && (
-                        <p className="text-white/40 text-xs sm:text-sm mt-0.5 truncate">{task.description}</p>
-                      )}
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {task.dueTime && (
+                          <span className="text-purple-300 text-xs flex items-center gap-1">
+                            <Clock size={10} /> {task.dueTime.slice(0, 5)}
+                          </span>
+                        )}
+                        {task.description && (
+                          <span className="text-white/40 text-xs truncate">{task.description}</span>
+                        )}
+                      </div>
                     </div>
                     {task.completed && <span className="text-green-400 text-xs font-medium flex-shrink-0">✓</span>}
                   </div>
