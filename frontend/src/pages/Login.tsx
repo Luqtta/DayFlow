@@ -69,17 +69,12 @@ export default function Login() {
       <div className="fixed top-[-100px] left-[-100px] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="fixed bottom-[-100px] right-[-100px] w-[400px] h-[400px] bg-purple-800/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div
-        className="relative w-full max-w-md transition-all duration-700"
-        style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(30px)' }}
-      >
+      <div className="relative w-full max-w-md transition-all duration-700"
+        style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(30px)' }}>
+
         <div className="text-center mb-8">
-          <h1
-            className="text-4xl font-bold text-white mb-2 cursor-pointer hover:text-purple-300 transition"
-            onClick={() => navigate('/')}
-          >
-            DayFlow
-          </h1>
+          <h1 className="text-4xl font-bold text-white mb-2 cursor-pointer hover:text-purple-300 transition"
+            onClick={() => navigate('/')}>DayFlow</h1>
           <p className="text-purple-300">Organize sua rotina com inteligência</p>
         </div>
 
@@ -89,25 +84,17 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
               <label className="text-purple-200 text-sm font-medium mb-1 block">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition"
-              />
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition" />
             </div>
 
             <div>
               <label className="text-purple-200 text-sm font-medium mb-1 block">Senha</label>
               <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/40 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition"
-                />
+                <input type={showPassword ? 'text' : 'password'} value={password}
+                  onChange={e => setPassword(e.target.value)} placeholder="••••••••"
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/40 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition" />
                 {password && (
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition">
@@ -117,11 +104,15 @@ export default function Login() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all duration-200 mt-2 hover:scale-[1.02]"
-            >
+            <div className="text-right">
+              <span onClick={() => navigate('/forgot-password')}
+                className="text-purple-300 hover:text-purple-200 text-sm cursor-pointer transition">
+                Esqueci minha senha
+              </span>
+            </div>
+
+            <button type="submit" disabled={loading}
+              className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all duration-200 mt-2 hover:scale-[1.02]">
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
