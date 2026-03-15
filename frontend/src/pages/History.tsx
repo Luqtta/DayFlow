@@ -33,16 +33,18 @@ export default function History() {
       })
       const tasks = await response.json()
 
-      const grouped: Record<string, { total: number, completed: number }> = {}
-        const today = new Date().toISOString().split('T')[0]
+      const now = new Date()
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
-        tasks.forEach((task: any) => {
+      const grouped: Record<string, { total: number, completed: number }> = {}
+
+      tasks.forEach((task: any) => {
         const date = task.recurrent ? today : task.dueDate
-        if (!date) return 
+        if (!date) return
         if (!grouped[date]) grouped[date] = { total: 0, completed: 0 }
         grouped[date].total++
         if (task.completed) grouped[date].completed++
-        })
+      })
 
       const result: DailyProgress[] = Object.entries(grouped)
         .map(([date, data]) => ({
@@ -96,7 +98,7 @@ export default function History() {
     <div style={{ background: '#0f0a1e' }} className="min-h-screen flex">
       <Sidebar />
 
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col pb-20 lg:pb-0">
         <header className="flex items-center justify-between p-6 border-b border-white/10">
           <div style={fadeUp(0)}>
             <h2 className="text-white font-semibold text-lg">Histórico</h2>
@@ -107,7 +109,6 @@ export default function History() {
 
         <div className="flex-1 p-6 space-y-6">
 
-          {/* Cards de resumo */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div style={fadeUp(100)} className="bg-white/5 border border-white/10 rounded-2xl p-5">
               <p className="text-white/50 text-sm mb-1">Média geral</p>
@@ -134,7 +135,6 @@ export default function History() {
             </div>
           </div>
 
-          {/* Gráfico de barras animado */}
           {history.length > 0 && (
             <div style={fadeUp(400)} className="bg-white/5 border border-white/10 rounded-2xl p-6">
               <h3 className="text-white font-semibold mb-6">Progresso por dia</h3>
@@ -162,7 +162,6 @@ export default function History() {
             </div>
           )}
 
-          {/* Lista de dias */}
           <div style={fadeUp(500)} className="bg-white/5 border border-white/10 rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">Detalhes por dia</h3>
             {loading ? (
@@ -175,15 +174,12 @@ export default function History() {
             ) : (
               <div className="space-y-3">
                 {history.map((day, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-4 p-4 bg-white/5 rounded-xl"
+                  <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-xl"
                     style={{
                       opacity: visible ? 1 : 0,
                       transform: visible ? 'translateY(0)' : 'translateY(10px)',
                       transition: `all 0.4s ease ${600 + i * 80}ms`
-                    }}
-                  >
+                    }}>
                     <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getColor(day.percentage)}`} />
                     <div className="flex-1">
                       <p className="text-white text-sm font-medium">{formatDate(day.date)}</p>
@@ -191,13 +187,11 @@ export default function History() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="w-24 h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${getColor(day.percentage)}`}
+                        <div className={`h-full rounded-full ${getColor(day.percentage)}`}
                           style={{
                             width: animated ? `${day.percentage}%` : '0%',
                             transition: `width 0.8s ease ${i * 100}ms`
-                          }}
-                        />
+                          }} />
                       </div>
                       <span className={`text-sm font-semibold min-w-[40px] text-right ${getTextColor(day.percentage)}`}>
                         {day.percentage}%

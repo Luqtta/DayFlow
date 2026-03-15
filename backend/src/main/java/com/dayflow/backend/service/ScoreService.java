@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,6 +22,17 @@ public class ScoreService {
     @Autowired
     private UserRepository userRepository;
 
+    private static final ZoneId BRASILIA = ZoneId.of("America/Sao_Paulo");
+
+    private LocalDate toBrasiliaDate(LocalDateTime dt) {
+        if (dt == null) return null;
+        return dt.atZone(ZoneId.of("UTC")).withZoneSameInstant(BRASILIA).toLocalDate();
+    }
+
+    private LocalDate todayBrasilia() {
+        return LocalDateTime.now().atZone(ZoneId.of("UTC")).withZoneSameInstant(BRASILIA).toLocalDate();
+    }
+
     public Map<String, Object> calculateScore(Long userId) {
         List<Task> tasks = taskRepository.findByUserId(userId);
 
@@ -27,9 +40,19 @@ public class ScoreService {
             return buildResult(0, 0, 0, 0, "D");
         }
 
-        Map<LocalDate, List<Task>> tasksByDate = tasks.stream()
-                .filter(t -> t.getDueDate() != null)
-                .collect(Collectors.groupingBy(Task::getDueDate));
+        // Agrupa tarefas por data usando fuso de Brasília
+        Map<LocalDate, List<Task>> tasksByDate = new HashMap<>();
+        for (Task task : tasks) {
+            LocalDate date = null;
+            if (task.isRecurrent() && task.getCompletedAt() != null) {
+                date = toBrasiliaDate(task.getCompletedAt());
+            } else if (task.getDueDate() != null) {
+                date = task.getDueDate();
+            }
+            if (date != null) {
+                tasksByDate.computeIfAbsent(date, k -> new ArrayList<>()).add(task);
+            }
+        }
 
         long totalTasks = tasks.size();
         long completedTasks = tasks.stream().filter(Task::isCompleted).count();
@@ -52,7 +75,7 @@ public class ScoreService {
 
     private int calculateStreak(Map<LocalDate, List<Task>> tasksByDate) {
         if (tasksByDate.isEmpty()) return 0;
-        LocalDate today = LocalDate.now();
+        LocalDate today = todayBrasilia();
         int streak = 0;
         LocalDate current = today;
         while (true) {
