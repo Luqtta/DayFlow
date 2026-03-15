@@ -64,7 +64,7 @@ export default function Register() {
       const data = await response.json()
       if (!response.ok) { toast.error(data.error || 'Erro ao criar conta!'); return }
       toast.success('Conta criada! Verifique seu email 📧')
-      setTimeout(() => navigate('/verify-email', { state: { email } }), 1500)
+      setTimeout(() => navigate('/verify-email', { state: { email, password } }), 1500)
     } catch {
       toast.error('Erro ao conectar com o servidor!')
     } finally {

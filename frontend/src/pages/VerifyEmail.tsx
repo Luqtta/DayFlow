@@ -6,6 +6,7 @@ export default function VerifyEmail() {
   const navigate = useNavigate()
   const location = useLocation()
   const email = location.state?.email || ''
+  const password = location.state?.password || ''
 
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,6 +37,33 @@ export default function VerifyEmail() {
       })
       const data = await response.json()
       if (!response.ok) { toast.error(data.error || 'Código inválido!'); return }
+
+      // Login automático se tiver a senha
+      if (password) {
+        const loginRes = await fetch('https://dayflow-production-724d.up.railway.app/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        })
+        const loginData = await loginRes.json()
+
+        if (loginRes.ok) {
+          localStorage.setItem('token', loginData.token)
+          localStorage.setItem('name', loginData.name)
+          localStorage.setItem('email', loginData.email)
+
+          const profileRes = await fetch('https://dayflow-production-724d.up.railway.app/auth/profile', {
+            headers: { 'Authorization': `Bearer ${loginData.token}` }
+          })
+          const profileData = await profileRes.json()
+          if (profileData.avatarUrl) localStorage.setItem('avatar', profileData.avatarUrl)
+
+          toast.success(`Conta criada! Bem-vindo ao DayFlow 🎉`)
+          setTimeout(() => navigate('/dashboard'), 1000)
+          return
+        }
+      }
+
       toast.success('Email verificado! Faça login 🎉')
       setTimeout(() => navigate('/login'), 1500)
     } catch {
@@ -70,17 +98,12 @@ export default function VerifyEmail() {
       <div className="fixed top-[-100px] left-[-100px] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="fixed bottom-[-100px] right-[-100px] w-[400px] h-[400px] bg-purple-800/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div
-        className="relative w-full max-w-md transition-all duration-700"
-        style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(30px)' }}
-      >
+      <div className="relative w-full max-w-md transition-all duration-700"
+        style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(30px)' }}>
+
         <div className="text-center mb-8">
-          <h1
-            className="text-4xl font-bold text-white mb-2 cursor-pointer hover:text-purple-300 transition"
-            onClick={() => navigate('/')}
-          >
-            DayFlow
-          </h1>
+          <h1 className="text-4xl font-bold text-white mb-2 cursor-pointer hover:text-purple-300 transition"
+            onClick={() => navigate('/')}>DayFlow</h1>
           <p className="text-purple-300">Verifique seu email</p>
         </div>
 
@@ -88,9 +111,7 @@ export default function VerifyEmail() {
           <div className="text-center mb-6">
             <div className="text-5xl mb-4">📧</div>
             <h2 className="text-2xl font-semibold text-white mb-2">Verifique seu email</h2>
-            <p className="text-white/50 text-sm">
-              Enviamos um código de 6 dígitos para
-            </p>
+            <p className="text-white/50 text-sm">Enviamos um código de 6 dígitos para</p>
             <p className="text-purple-300 font-medium text-sm mt-1">{email}</p>
           </div>
 
@@ -107,31 +128,23 @@ export default function VerifyEmail() {
               />
             </div>
 
-            <button
-              onClick={handleVerify}
-              disabled={loading || code.length !== 6}
-              className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all duration-200 hover:scale-[1.02]"
-            >
+            <button onClick={handleVerify} disabled={loading || code.length !== 6}
+              className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all duration-200 hover:scale-[1.02]">
               {loading ? 'Verificando...' : 'Verificar email'}
             </button>
 
             <div className="text-center">
               <p className="text-white/40 text-sm">Não recebeu o código?</p>
-              <button
-                onClick={handleResend}
-                disabled={resending || countdown > 0}
-                className="text-purple-300 hover:text-purple-200 text-sm transition mt-1 disabled:text-white/30 disabled:cursor-not-allowed"
-              >
+              <button onClick={handleResend} disabled={resending || countdown > 0}
+                className="text-purple-300 hover:text-purple-200 text-sm transition mt-1 disabled:text-white/30 disabled:cursor-not-allowed">
                 {resending ? 'Reenviando...' :
                  countdown > 0 ? `Reenviar em ${countdown}s` :
                  'Reenviar código'}
               </button>
             </div>
 
-            <button
-              onClick={() => navigate('/register')}
-              className="w-full text-white/30 hover:text-white/60 text-sm transition text-center"
-            >
+            <button onClick={() => navigate('/register')}
+              className="w-full text-white/30 hover:text-white/60 text-sm transition text-center">
               ← Voltar ao cadastro
             </button>
           </div>
