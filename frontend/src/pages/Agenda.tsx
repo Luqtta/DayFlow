@@ -25,9 +25,11 @@ export default function Agenda() {
   const token = localStorage.getItem('token')
 
   const today = new Date()
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
-  const [selectedDate, setSelectedDate] = useState<string>(today.toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr)
   const [monthTasks, setMonthTasks] = useState<Task[]>([])
   const [dayTasks, setDayTasks] = useState<Task[]>([])
   const [loadingDay, setLoadingDay] = useState(false)
@@ -36,19 +38,8 @@ export default function Agenda() {
   const [visible, setVisible] = useState(false)
   const creating = useRef(false)
 
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    dueDate: selectedDate,
-    dueTime: '',
-  })
-
-  const [editForm, setEditForm] = useState({
-    title: '',
-    description: '',
-    dueDate: '',
-    dueTime: '',
-  })
+  const [form, setForm] = useState({ title: '', description: '', dueDate: selectedDate, dueTime: '' })
+  const [editForm, setEditForm] = useState({ title: '', description: '', dueDate: '', dueTime: '' })
 
   useEffect(() => {
     if (!token) { navigate('/login'); return }
@@ -151,8 +142,8 @@ export default function Agenda() {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       setDayTasks(prev => prev.map(t => t.id === id ? { ...t, completed: true } : t))
-      toast.success('Tarefa concluída! 🎉')
-    } catch { toast.error('Erro ao concluir tarefa!') }
+      toast.success('Evento concluído! 🎉')
+    } catch { toast.error('Erro ao concluir evento!') }
   }
 
   const deleteTask = async (id: number) => {
@@ -192,7 +183,7 @@ export default function Agenda() {
   }
 
   const hasTasksOnDay = (day: number) => monthTasks.some(t => t.dueDate === getDateStr(day))
-  const isToday = (day: number) => getDateStr(day) === today.toISOString().split('T')[0]
+  const isToday = (day: number) => getDateStr(day) === todayStr
   const isSelected = (day: number) => getDateStr(day) === selectedDate
 
   const selectedDateLabel = () => {
@@ -200,6 +191,8 @@ export default function Agenda() {
     const date = new Date(Number(y), Number(m) - 1, Number(d))
     return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   }
+
+  const isSelectedToday = selectedDate === todayStr
 
   return (
     <div style={{ background: '#0f0a1e' }} className="min-h-screen flex">
@@ -287,13 +280,20 @@ export default function Agenda() {
                     <div key={task.id}
                       className={`flex items-center gap-3 p-4 rounded-xl border transition
                         ${task.completed ? 'bg-green-500/10 border-green-500/20' : 'bg-white/5 border-white/10'}`}>
-                      <button onClick={() => !task.completed && completeTask(task.id)}
-                        disabled={task.completed} className="flex-shrink-0">
-                        {task.completed
-                          ? <CheckCircle2 size={22} className="text-green-400" />
-                          : <Circle size={22} className="text-white/30 hover:text-purple-400 transition" />
-                        }
-                      </button>
+
+                      {/* Botão de completar — só eventos do dia de hoje */}
+                      <div className="flex-shrink-0">
+                        {task.agendaEvent && isSelectedToday && !task.completed ? (
+                          <button onClick={() => completeTask(task.id)}>
+                            <Circle size={22} className="text-white/30 hover:text-purple-400 transition" />
+                          </button>
+                        ) : task.completed ? (
+                          <CheckCircle2 size={22} className="text-green-400" />
+                        ) : (
+                          <Circle size={22} className="text-white/10" />
+                        )}
+                      </div>
+
                       <div className="flex-1 min-w-0">
                         <p className={`font-medium text-sm truncate ${task.completed ? 'line-through text-white/40' : 'text-white'}`}>
                           {task.title}
@@ -315,12 +315,16 @@ export default function Agenda() {
                           )}
                         </div>
                       </div>
-                      {task.agendaEvent && !task.completed && (
+
+                      {/* Botões editar/deletar — só eventos de agenda */}
+                      {task.agendaEvent && (
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          <button onClick={() => openEdit(task)}
-                            className="text-white/30 hover:text-purple-400 transition p-1 rounded-lg hover:bg-purple-500/10">
-                            <Pencil size={14} />
-                          </button>
+                          {!task.completed && (
+                            <button onClick={() => openEdit(task)}
+                              className="text-white/30 hover:text-purple-400 transition p-1 rounded-lg hover:bg-purple-500/10">
+                              <Pencil size={14} />
+                            </button>
+                          )}
                           <button onClick={() => deleteTask(task.id)}
                             className="text-red-400/50 hover:text-red-400 transition p-1 rounded-lg hover:bg-red-500/10">
                             <Trash2 size={14} />
