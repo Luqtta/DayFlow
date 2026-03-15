@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
-  CheckCircle2, Circle, ListTodo, Sun, Trophy, TrendingUp, Flame, Clock
+  CheckCircle2, Circle, ListTodo, Sun, Moon, Trophy, TrendingUp, Flame, Clock, Sunset
 } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 import UserMenu from '../components/UserMenu'
@@ -116,6 +116,13 @@ export default function Dashboard() {
     return 'Boa noite'
   }
 
+  const getGreetingIcon = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return <Sun size={20} className="text-yellow-400" />
+    if (hour < 18) return <Sunset size={20} className="text-orange-400" />
+    return <Moon size={20} className="text-blue-300" />
+  }
+
   const fadeUp = (delay: number) => ({
     opacity: visible ? 1 : 0,
     transform: visible ? 'translateY(0)' : 'translateY(20px)',
@@ -130,7 +137,7 @@ export default function Dashboard() {
         <header className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
           <div style={fadeUp(0)}>
             <h2 className="text-white font-semibold text-base sm:text-lg flex items-center gap-2">
-              <Sun size={20} className="text-yellow-400" />
+              {getGreetingIcon()}
               {getGreeting()}, {name}!
             </h2>
             <p className="text-white/40 text-xs sm:text-sm">
