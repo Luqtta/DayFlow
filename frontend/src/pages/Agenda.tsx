@@ -194,6 +194,9 @@ export default function Agenda() {
   }
 
   const isSelectedToday = selectedDate === todayStr
+  const selectedDateObj = new Date(`${selectedDate}T00:00:00`)
+  const todayDateObj = new Date(`${todayStr}T00:00:00`)
+  const isSelectedPast = selectedDateObj.getTime() < todayDateObj.getTime()
 
   return (
     <div style={{ background: '#0f0a1e' }} className="min-h-screen flex">
@@ -284,16 +287,16 @@ export default function Agenda() {
 
                       {/* Botão de completar — só eventos do dia de hoje */}
                       <div className="flex-shrink-0">
-                        {task.agendaEvent && isSelectedToday && !task.completed ? (
+                        {task.completed ? (
+                          <CheckCircle2 size={22} className="text-green-400" />
+                        ) : task.agendaEvent && isSelectedToday ? (
                           <button onClick={() => completeTask(task.id)}>
                             <Circle size={22} className="text-white/30 hover:text-purple-400 transition" />
                           </button>
-                        ) : task.completed ? (
-                          <CheckCircle2 size={22} className="text-green-400" />
-                        ) : task.agendaEvent ? (
-                          <Circle size={22} className="text-white/10" />
-                        ) : (
+                        ) : isSelectedPast ? (
                           <X size={22} className="text-red-400/60" />
+                        ) : (
+                          <Circle size={22} className="text-white/10" />
                         )}
                       </div>
 

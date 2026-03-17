@@ -38,6 +38,13 @@ public class TaskService {
                 .toLocalDate();
     }
 
+    private LocalDate createdAtToBrasiliaDate(LocalDateTime createdAt) {
+        if (createdAt == null) return null;
+        return createdAt.atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(ZoneId.of("America/Sao_Paulo"))
+                .toLocalDate();
+    }
+
     private String normalizeRecurrenceDays(List<Integer> days) {
         if (days == null || days.isEmpty()) return null;
         Set<Integer> unique = new HashSet<>();
@@ -97,6 +104,12 @@ public class TaskService {
         return copy;
     }
 
+    private boolean isOnOrAfterCreation(Task task, LocalDate date) {
+        LocalDate createdDate = createdAtToBrasiliaDate(task.getCreatedAt());
+        if (createdDate == null) return true;
+        return !date.isBefore(createdDate);
+    }
+
     public Task create(TaskRequest request, String email) {
         User user = userService.findByEmail(email);
 
@@ -128,14 +141,19 @@ public class TaskService {
     public List<Task> findToday(String email, LocalDate today) {
         User user = userService.findByEmail(email);
 
-        List<Task> todayTasks = taskRepository.findByUserIdAndDueDate(user.getId(), today);
-        List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
+        List<Task> todayTasks = taskRepository.findByUserIdAndDueDate(user.getId(), today).stream()
+                .filter(task -> isOnOrAfterCreation(task, today))
+                .collect(Collectors.toList());
+        List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true).stream()
+                .filter(task -> isOnOrAfterCreation(task, today))
+                .collect(Collectors.toList());
         List<Task> weeklyTasks = taskRepository.findByUserIdAndRecurrenceDaysIsNotNull(user.getId());
 
         recurrentTasks.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
 
         List<Task> matchingWeekly = weeklyTasks.stream()
                 .filter(task -> matchesRecurrenceDay(task, today))
+                .filter(task -> isOnOrAfterCreation(task, today))
                 .collect(Collectors.toList());
         matchingWeekly.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
 
@@ -148,23 +166,31 @@ public class TaskService {
     public List<Task> findByDate(String email, LocalDate date, LocalDate today) {
         User user = userService.findByEmail(email);
 
-        List<Task> dateTasks = taskRepository.findByUserIdAndDueDate(user.getId(), date);
+        List<Task> dateTasks = taskRepository.findByUserIdAndDueDate(user.getId(), date).stream()
+                .filter(task -> isOnOrAfterCreation(task, date))
+                .collect(Collectors.toList());
         List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
         List<Task> weeklyTasks = taskRepository.findByUserIdAndRecurrenceDaysIsNotNull(user.getId());
 
         if (date.equals(today)) {
+            recurrentTasks = recurrentTasks.stream()
+                    .filter(task -> isOnOrAfterCreation(task, today))
+                    .collect(Collectors.toList());
             recurrentTasks.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
             List<Task> matchingWeekly = weeklyTasks.stream()
                     .filter(task -> matchesRecurrenceDay(task, today))
+                    .filter(task -> isOnOrAfterCreation(task, today))
                     .collect(Collectors.toList());
             matchingWeekly.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
             weeklyTasks = matchingWeekly;
         } else {
             recurrentTasks = recurrentTasks.stream()
+                    .filter(task -> isOnOrAfterCreation(task, date))
                     .map(task -> copyForDate(task, date))
                     .collect(Collectors.toList());
             weeklyTasks = weeklyTasks.stream()
                     .filter(task -> matchesRecurrenceDay(task, date))
+                    .filter(task -> isOnOrAfterCreation(task, date))
                     .map(task -> copyForDate(task, date))
                     .collect(Collectors.toList());
         }
