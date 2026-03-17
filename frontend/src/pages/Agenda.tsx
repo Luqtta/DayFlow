@@ -14,6 +14,7 @@ interface Task {
   dueTime: string | null
   agendaEvent: boolean
   recurrent: boolean
+  recurrenceDays?: string | number[] | null
 }
 
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -289,8 +290,10 @@ export default function Agenda() {
                           </button>
                         ) : task.completed ? (
                           <CheckCircle2 size={22} className="text-green-400" />
-                        ) : (
+                        ) : task.agendaEvent ? (
                           <Circle size={22} className="text-white/10" />
+                        ) : (
+                          <X size={22} className="text-red-400/60" />
                         )}
                       </div>
 
@@ -306,6 +309,9 @@ export default function Agenda() {
                           )}
                           {task.agendaEvent && (
                             <span className="text-blue-300 text-xs px-2 py-0.5 bg-blue-500/10 rounded-full">evento</span>
+                          )}
+                          {!task.agendaEvent && (
+                            <span className="text-emerald-300 text-xs px-2 py-0.5 bg-emerald-500/10 rounded-full">rotina</span>
                           )}
                           {task.recurrent && (
                             <span className="text-purple-300 text-xs px-2 py-0.5 bg-purple-500/10 rounded-full">recorrente</span>

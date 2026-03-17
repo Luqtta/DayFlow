@@ -14,6 +14,7 @@ interface Task {
   dueDate: string
   dueTime: string | null
   recurrent: boolean
+  recurrenceDays?: string | number[] | null
 }
 
 interface Routine {
@@ -25,6 +26,31 @@ interface Routine {
 }
 
 const CATEGORIES = ['estudo', 'saúde', 'trabalho', 'pessoal', 'exercício', 'outro']
+const WEEKDAY_OPTIONS = [
+  { label: 'Seg', value: 1 },
+  { label: 'Ter', value: 2 },
+  { label: 'Qua', value: 3 },
+  { label: 'Qui', value: 4 },
+  { label: 'Sex', value: 5 },
+  { label: 'Sáb', value: 6 },
+  { label: 'Dom', value: 7 },
+]
+
+const parseRecurrenceDays = (days?: string | number[] | null) => {
+  if (!days) return [] as number[]
+  if (Array.isArray(days)) return days.filter(d => Number.isInteger(d))
+  return days.split(',')
+    .map(d => Number(d.trim()))
+    .filter(d => Number.isInteger(d) && d >= 1 && d <= 7)
+}
+
+const formatRecurrenceDays = (days: number[]) => {
+  if (days.length === 0) return ''
+  const labels = days
+    .map(day => WEEKDAY_OPTIONS.find(d => d.value === day)?.label)
+    .filter(Boolean)
+  return labels.join(', ')
+}
 
 function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
   routineId: number
@@ -65,6 +91,10 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
   const updateTask = async () => {
     if (!editingTask) return
     if (!editingTask.title) { toast.error('Título é obrigatório!'); return }
+    if (!editingTask.recurrent && parseRecurrenceDays(editingTask.recurrenceDays).length === 0) {
+      toast.error('Selecione ao menos um dia ou marque como recorrente!')
+      return
+    }
     try {
       const response = await fetch(`https://dayflow-production-724d.up.railway.app/tasks/${editingTask.id}`, {
         method: 'PUT',
@@ -72,9 +102,10 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
         body: JSON.stringify({
           title: editingTask.title,
           description: editingTask.description,
-          dueDate: editingTask.recurrent ? null : editingTask.dueDate,
+          dueDate: null,
           dueTime: editingTask.dueTime || null,
           recurrent: editingTask.recurrent,
+          recurrenceDays: editingTask.recurrent ? [] : parseRecurrenceDays(editingTask.recurrenceDays),
           routineId
         })
       })
@@ -93,7 +124,9 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
   return (
     <>
       <div className="space-y-2 mt-3">
-        {tasks.map(task => (
+        {tasks.map(task => {
+          const recurrenceLabel = formatRecurrenceDays(parseRecurrenceDays(task.recurrenceDays))
+          return (
           <div key={task.id} className="flex items-center gap-3 py-2">
             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.completed ? 'bg-green-400' : 'bg-purple-400'}`} />
             <span className={`text-sm flex-1 ${task.completed ? 'line-through text-white/30' : 'text-white/70'}`}>
@@ -108,11 +141,13 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
               <span className="text-purple-400/70 text-xs flex items-center gap-1">
                 <RefreshCw size={10} /> recorrente
               </span>
+            ) : recurrenceLabel ? (
+              <span className="text-white/40 text-xs">{recurrenceLabel}</span>
             ) : (
               <span className="text-white/20 text-xs">{task.dueDate}</span>
             )}
               <div className="flex items-center gap-1">
-              <button onClick={() => setEditingTask({ ...task })}
+              <button onClick={() => setEditingTask({ ...task, recurrenceDays: parseRecurrenceDays(task.recurrenceDays) })}
                 className="text-white/30 hover:text-purple-400 transition p-1 rounded-lg hover:bg-purple-500/10">
                 <Pencil size={13} />
               </button>
@@ -122,7 +157,7 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
               </button>
             </div>
           </div>
-        ))}
+        )})}
       </div>
 
       {confirmDeleteTaskId && createPortal(
@@ -170,14 +205,14 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
                   onChange={e => setEditingTask({ ...editingTask, dueTime: e.target.value || null })}
                   className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
               </div>
-              <div onClick={() => setEditingTask({ ...editingTask, recurrent: !editingTask.recurrent, dueDate: '' })}
+              <div onClick={() => setEditingTask({ ...editingTask, recurrent: !editingTask.recurrent, recurrenceDays: [] })}
                 className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition
                   ${editingTask.recurrent ? 'bg-purple-600/20 border-purple-500/40' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                 <div className="flex items-center gap-3">
                   <RefreshCw size={16} className={editingTask.recurrent ? 'text-purple-400' : 'text-white/30'} />
                   <div>
                     <p className={`text-sm font-medium ${editingTask.recurrent ? 'text-purple-200' : 'text-white/60'}`}>Tarefa recorrente</p>
-                    <p className="text-white/30 text-xs">Aparece todo dia no checklist</p>
+                    <p className="text-white/30 text-xs">Aparece todos os dias no checklist</p>
                   </div>
                 </div>
                 <div className={`w-10 h-5 rounded-full transition-colors ${editingTask.recurrent ? 'bg-purple-600' : 'bg-white/10'}`}>
@@ -186,10 +221,27 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
               </div>
               {!editingTask.recurrent && (
                 <div>
-                  <label className="text-purple-200 text-sm mb-1 block">Data</label>
-                  <input type="date" value={editingTask.dueDate || ''}
-                    onChange={e => setEditingTask({ ...editingTask, dueDate: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+                  <label className="text-purple-200 text-sm mb-2 block">Dias da semana</label>
+                  <div className="flex flex-wrap gap-2">
+                    {WEEKDAY_OPTIONS.map(day => {
+                      const selected = parseRecurrenceDays(editingTask.recurrenceDays).includes(day.value)
+                      return (
+                        <button key={day.value} type="button"
+                          onClick={() => {
+                            const current = parseRecurrenceDays(editingTask.recurrenceDays)
+                            const next = selected
+                              ? current.filter(d => d !== day.value)
+                              : [...current, day.value].sort((a, b) => a - b)
+                            setEditingTask({ ...editingTask, recurrenceDays: next })
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition
+                            ${selected ? 'bg-purple-600/30 border-purple-500/40 text-purple-100' : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'}`}>
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-white/30 text-xs mt-2">Selecione os dias em que a tarefa aparece</p>
                 </div>
               )}
               <button onClick={updateTask}
@@ -222,7 +274,13 @@ export default function Routines() {
   const [selectedRoutineId, setSelectedRoutineId] = useState<number | null>(null)
 
   const [routineForm, setRoutineForm] = useState({ title: '', description: '', category: 'estudo' })
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', dueDate: '', dueTime: '', recurrent: false })
+  const [taskForm, setTaskForm] = useState({
+    title: '',
+    description: '',
+    dueTime: '',
+    recurrent: false,
+    recurrenceDays: [] as number[]
+  })
 
   const creatingRoutine = useRef(false)
   const creatingTask = useRef(false)
@@ -308,7 +366,10 @@ export default function Routines() {
   const createTask = async () => {
     if (creatingTask.current) return
     if (!taskForm.title) { toast.error('Título é obrigatório!'); return }
-    if (!taskForm.recurrent && !taskForm.dueDate) { toast.error('Selecione uma data ou marque como recorrente!'); return }
+    if (!taskForm.recurrent && taskForm.recurrenceDays.length === 0) {
+      toast.error('Selecione ao menos um dia ou marque como recorrente!')
+      return
+    }
     creatingTask.current = true
     try {
       const response = await fetch('https://dayflow-production-724d.up.railway.app/tasks', {
@@ -317,16 +378,17 @@ export default function Routines() {
         body: JSON.stringify({
           title: taskForm.title,
           description: taskForm.description,
-          dueDate: taskForm.dueDate || null,
+          dueDate: null,
           dueTime: taskForm.dueTime || null,
           recurrent: taskForm.recurrent,
+          recurrenceDays: taskForm.recurrent ? [] : taskForm.recurrenceDays,
           routineId: selectedRoutineId
         })
       })
       if (!response.ok) { toast.error('Erro ao criar tarefa!'); return }
       toast.success('Tarefa criada! 🎉')
       setShowTaskModal(false)
-      setTaskForm({ title: '', description: '', dueDate: '', dueTime: '', recurrent: false })
+      setTaskForm({ title: '', description: '', dueTime: '', recurrent: false, recurrenceDays: [] })
       setRefreshKeys(prev => ({ ...prev, [selectedRoutineId!]: (prev[selectedRoutineId!] || 0) + 1 }))
       setExpandedRoutine(selectedRoutineId)
     } catch {
@@ -562,14 +624,14 @@ export default function Routines() {
                   onChange={e => setTaskForm({ ...taskForm, dueTime: e.target.value })}
                   className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
               </div>
-              <div onClick={() => setTaskForm({ ...taskForm, recurrent: !taskForm.recurrent, dueDate: '' })}
+              <div onClick={() => setTaskForm({ ...taskForm, recurrent: !taskForm.recurrent, recurrenceDays: [] })}
                 className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition
                   ${taskForm.recurrent ? 'bg-purple-600/20 border-purple-500/40' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                 <div className="flex items-center gap-3">
                   <RefreshCw size={16} className={taskForm.recurrent ? 'text-purple-400' : 'text-white/30'} />
                   <div>
                     <p className={`text-sm font-medium ${taskForm.recurrent ? 'text-purple-200' : 'text-white/60'}`}>Tarefa recorrente</p>
-                    <p className="text-white/30 text-xs">Aparece todo dia no checklist</p>
+                    <p className="text-white/30 text-xs">Aparece todos os dias no checklist</p>
                   </div>
                 </div>
                 <div className={`w-10 h-5 rounded-full transition-colors ${taskForm.recurrent ? 'bg-purple-600' : 'bg-white/10'}`}>
@@ -578,10 +640,26 @@ export default function Routines() {
               </div>
               {!taskForm.recurrent && (
                 <div>
-                  <label className="text-purple-200 text-sm mb-1 block">Data</label>
-                  <input type="date" value={taskForm.dueDate}
-                    onChange={e => setTaskForm({ ...taskForm, dueDate: e.target.value })}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+                  <label className="text-purple-200 text-sm mb-2 block">Dias da semana</label>
+                  <div className="flex flex-wrap gap-2">
+                    {WEEKDAY_OPTIONS.map(day => {
+                      const selected = taskForm.recurrenceDays.includes(day.value)
+                      return (
+                        <button key={day.value} type="button"
+                          onClick={() => {
+                            const next = selected
+                              ? taskForm.recurrenceDays.filter(d => d !== day.value)
+                              : [...taskForm.recurrenceDays, day.value].sort((a, b) => a - b)
+                            setTaskForm({ ...taskForm, recurrenceDays: next })
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition
+                            ${selected ? 'bg-purple-600/30 border-purple-500/40 text-purple-100' : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'}`}>
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-white/30 text-xs mt-2">Selecione os dias em que a tarefa aparece</p>
                 </div>
               )}
               <button onClick={createTask}

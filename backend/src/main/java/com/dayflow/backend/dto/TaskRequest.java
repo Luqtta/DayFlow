@@ -2,6 +2,7 @@ package com.dayflow.backend.dto;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 public class TaskRequest {
     private String title;
@@ -11,6 +12,7 @@ public class TaskRequest {
     private Long routineId;
     private boolean recurrent = false;
     private boolean agendaEvent = false;
+    private List<Integer> recurrenceDays;
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -32,4 +34,7 @@ public class TaskRequest {
 
     public boolean isAgendaEvent() { return agendaEvent; }
     public void setAgendaEvent(boolean agendaEvent) { this.agendaEvent = agendaEvent; }
+
+    public List<Integer> getRecurrenceDays() { return recurrenceDays; }
+    public void setRecurrenceDays(List<Integer> recurrenceDays) { this.recurrenceDays = recurrenceDays; }
 }

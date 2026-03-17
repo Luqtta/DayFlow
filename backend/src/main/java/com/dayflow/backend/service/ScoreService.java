@@ -33,6 +33,10 @@ public class ScoreService {
         return LocalDateTime.now().atZone(ZoneId.of("UTC")).withZoneSameInstant(BRASILIA).toLocalDate();
     }
 
+    private boolean hasRecurrenceDays(Task task) {
+        return task.getRecurrenceDays() != null && !task.getRecurrenceDays().trim().isEmpty();
+    }
+
     public Map<String, Object> calculateScore(Long userId) {
         List<Task> tasks = taskRepository.findByUserId(userId);
 
@@ -44,7 +48,7 @@ public class ScoreService {
         Map<LocalDate, List<Task>> tasksByDate = new HashMap<>();
         for (Task task : tasks) {
             LocalDate date = null;
-            if (task.isRecurrent() && task.getCompletedAt() != null) {
+            if ((task.isRecurrent() || hasRecurrenceDays(task)) && task.getCompletedAt() != null) {
                 date = toBrasiliaDate(task.getCompletedAt());
             } else if (task.getDueDate() != null) {
                 date = task.getDueDate();

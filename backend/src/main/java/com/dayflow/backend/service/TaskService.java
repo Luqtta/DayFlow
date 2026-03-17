@@ -12,7 +12,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +38,65 @@ public class TaskService {
                 .toLocalDate();
     }
 
+    private String normalizeRecurrenceDays(List<Integer> days) {
+        if (days == null || days.isEmpty()) return null;
+        Set<Integer> unique = new HashSet<>();
+        for (Integer day : days) {
+            if (day == null) continue;
+            if (day < 1 || day > 7) continue;
+            unique.add(day);
+        }
+        if (unique.isEmpty()) return null;
+        List<Integer> sorted = new ArrayList<>(unique);
+        Collections.sort(sorted);
+        return sorted.stream().map(String::valueOf).collect(Collectors.joining(","));
+    }
+
+    private Set<Integer> parseRecurrenceDays(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return Collections.emptySet();
+        Set<Integer> result = new HashSet<>();
+        for (String part : raw.split(",")) {
+            try {
+                int day = Integer.parseInt(part.trim());
+                if (day >= 1 && day <= 7) result.add(day);
+            } catch (NumberFormatException ignored) {
+                // ignore invalid values
+            }
+        }
+        return result;
+    }
+
+    private boolean matchesRecurrenceDay(Task task, LocalDate date) {
+        if (task.getRecurrenceDays() == null || task.getRecurrenceDays().trim().isEmpty()) return false;
+        int day = date.getDayOfWeek().getValue();
+        return parseRecurrenceDays(task.getRecurrenceDays()).contains(day);
+    }
+
+    private void resetIfCompletedOnAnotherDay(Task task, LocalDate today) {
+        LocalDate completedDate = completedAtToBrasiliaDate(task.getCompletedAt());
+        if (completedDate != null && !completedDate.equals(today)) {
+            task.setCompleted(false);
+            taskRepository.save(task);
+        }
+    }
+
+    private Task copyForDate(Task task, LocalDate date) {
+        Task copy = new Task();
+        copy.setId(task.getId());
+        copy.setTitle(task.getTitle());
+        copy.setDescription(task.getDescription());
+        copy.setRecurrent(task.isRecurrent());
+        copy.setRecurrenceDays(task.getRecurrenceDays());
+        copy.setDueTime(task.getDueTime());
+        copy.setAgendaEvent(task.isAgendaEvent());
+        copy.setRoutine(task.getRoutine());
+        copy.setUser(task.getUser());
+
+        LocalDate completedDate = completedAtToBrasiliaDate(task.getCompletedAt());
+        copy.setCompleted(completedDate != null && completedDate.equals(date));
+        return copy;
+    }
+
     public Task create(TaskRequest request, String email) {
         User user = userService.findByEmail(email);
 
@@ -45,14 +107,18 @@ public class TaskService {
         task.setAgendaEvent(request.isAgendaEvent());
         task.setDueTime(request.getDueTime());
         task.setUser(user);
+        task.setRecurrenceDays(normalizeRecurrenceDays(request.getRecurrenceDays()));
 
         if (request.isAgendaEvent()) {
             task.setDueDate(request.getDueDate());
+            task.setRecurrent(false);
+            task.setRecurrenceDays(null);
         } else {
             Routine routine = routineService.findById(request.getRoutineId(), email);
             task.setRoutine(routine);
-            if (!request.isRecurrent()) {
-                task.setDueDate(request.getDueDate());
+            task.setDueDate(null);
+            if (request.isRecurrent()) {
+                task.setRecurrenceDays(null);
             }
         }
 
@@ -64,18 +130,18 @@ public class TaskService {
 
         List<Task> todayTasks = taskRepository.findByUserIdAndDueDate(user.getId(), today);
         List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
+        List<Task> weeklyTasks = taskRepository.findByUserIdAndRecurrenceDaysIsNotNull(user.getId());
 
-        recurrentTasks.forEach(task -> {
-            LocalDate completedDate = completedAtToBrasiliaDate(task.getCompletedAt());
-            if (completedDate != null && !completedDate.equals(today)) {
-                task.setCompleted(false);
-                task.setCompletedAt(null);
-                taskRepository.save(task);
-            }
-        });
+        recurrentTasks.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
+
+        List<Task> matchingWeekly = weeklyTasks.stream()
+                .filter(task -> matchesRecurrenceDay(task, today))
+                .collect(Collectors.toList());
+        matchingWeekly.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
 
         List<Task> result = new ArrayList<>(todayTasks);
         result.addAll(recurrentTasks);
+        result.addAll(matchingWeekly);
         return result;
     }
 
@@ -84,34 +150,28 @@ public class TaskService {
 
         List<Task> dateTasks = taskRepository.findByUserIdAndDueDate(user.getId(), date);
         List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
+        List<Task> weeklyTasks = taskRepository.findByUserIdAndRecurrenceDaysIsNotNull(user.getId());
 
         if (date.equals(today)) {
-            recurrentTasks.forEach(task -> {
-                LocalDate completedDate = completedAtToBrasiliaDate(task.getCompletedAt());
-                if (completedDate != null && !completedDate.equals(today)) {
-                    task.setCompleted(false);
-                    task.setCompletedAt(null);
-                    taskRepository.save(task);
-                }
-            });
-        } else if (date.isAfter(today)) {
-            recurrentTasks = recurrentTasks.stream().map(task -> {
-                Task copy = new Task();
-                copy.setId(task.getId());
-                copy.setTitle(task.getTitle());
-                copy.setDescription(task.getDescription());
-                copy.setRecurrent(true);
-                copy.setCompleted(false);
-                copy.setDueTime(task.getDueTime());
-                copy.setAgendaEvent(task.isAgendaEvent());
-                copy.setRoutine(task.getRoutine());
-                copy.setUser(task.getUser());
-                return copy;
-            }).collect(Collectors.toList());
+            recurrentTasks.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
+            List<Task> matchingWeekly = weeklyTasks.stream()
+                    .filter(task -> matchesRecurrenceDay(task, today))
+                    .collect(Collectors.toList());
+            matchingWeekly.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
+            weeklyTasks = matchingWeekly;
+        } else {
+            recurrentTasks = recurrentTasks.stream()
+                    .map(task -> copyForDate(task, date))
+                    .collect(Collectors.toList());
+            weeklyTasks = weeklyTasks.stream()
+                    .filter(task -> matchesRecurrenceDay(task, date))
+                    .map(task -> copyForDate(task, date))
+                    .collect(Collectors.toList());
         }
 
         List<Task> result = new ArrayList<>(dateTasks);
         result.addAll(recurrentTasks);
+        result.addAll(weeklyTasks);
 
         result.sort((a, b) -> {
             if (a.getDueTime() == null && b.getDueTime() == null) return 0;
@@ -153,11 +213,19 @@ public class TaskService {
         task.setDescription(request.getDescription());
         task.setRecurrent(request.isRecurrent());
         task.setDueTime(request.getDueTime());
+        task.setAgendaEvent(request.isAgendaEvent());
 
-        if (!request.isRecurrent()) {
+        if (request.isAgendaEvent()) {
             task.setDueDate(request.getDueDate());
+            task.setRecurrent(false);
+            task.setRecurrenceDays(null);
         } else {
             task.setDueDate(null);
+            if (request.isRecurrent()) {
+                task.setRecurrenceDays(null);
+            } else {
+                task.setRecurrenceDays(normalizeRecurrenceDays(request.getRecurrenceDays()));
+            }
         }
 
         return taskRepository.save(task);

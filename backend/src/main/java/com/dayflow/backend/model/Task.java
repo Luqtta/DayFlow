@@ -34,6 +34,9 @@ public class Task {
     @Column(name = "agenda_event", nullable = false)
     private boolean agendaEvent = false;
 
+    @Column(name = "recurrence_days")
+    private String recurrenceDays;
+
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "routine_id")
@@ -78,6 +81,9 @@ public class Task {
 
     public boolean isAgendaEvent() { return agendaEvent; }
     public void setAgendaEvent(boolean agendaEvent) { this.agendaEvent = agendaEvent; }
+
+    public String getRecurrenceDays() { return recurrenceDays; }
+    public void setRecurrenceDays(String recurrenceDays) { this.recurrenceDays = recurrenceDays; }
 
     public Routine getRoutine() { return routine; }
     public void setRoutine(Routine routine) { this.routine = routine; }
