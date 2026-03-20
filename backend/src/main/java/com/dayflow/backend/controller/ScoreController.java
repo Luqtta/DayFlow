@@ -1,5 +1,6 @@
 package com.dayflow.backend.controller;
 
+import com.dayflow.backend.dto.DailyProgress;
 import com.dayflow.backend.service.ScoreService;
 import com.dayflow.backend.service.UserService;
 import com.dayflow.backend.model.User;
@@ -37,5 +38,12 @@ public class ScoreController {
     @GetMapping("/ranking")
     public ResponseEntity<List<Map<String, Object>>> getRanking() {
         return ResponseEntity.ok(scoreService.getRanking());
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<DailyProgress>> getHistory(@AuthenticationPrincipal UserDetails userDetails,
+                                                          @RequestParam(defaultValue = "30") int days) {
+        User user = userService.findByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(scoreService.getHistory(user.getId(), days));
     }
 }

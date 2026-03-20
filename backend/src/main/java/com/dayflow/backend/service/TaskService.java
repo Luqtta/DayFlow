@@ -3,7 +3,9 @@ package com.dayflow.backend.service;
 import com.dayflow.backend.dto.TaskRequest;
 import com.dayflow.backend.model.Routine;
 import com.dayflow.backend.model.Task;
+import com.dayflow.backend.model.TaskCompletion;
 import com.dayflow.backend.model.User;
+import com.dayflow.backend.repository.TaskCompletionRepository;
 import com.dayflow.backend.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -25,24 +28,38 @@ public class TaskService {
     private TaskRepository taskRepository;
 
     @Autowired
+    private TaskCompletionRepository taskCompletionRepository;
+
+    @Autowired
     private UserService userService;
 
     @Autowired
     private RoutineService routineService;
 
+    private static final ZoneId BRASILIA = ZoneId.of("America/Sao_Paulo");
+    private static final ZoneId UTC = ZoneId.of("UTC");
+
     // Converte completedAt (UTC no banco) para data no fuso de Brasília
     private LocalDate completedAtToBrasiliaDate(LocalDateTime completedAt) {
         if (completedAt == null) return null;
-        return completedAt.atZone(ZoneId.of("UTC"))
-                .withZoneSameInstant(ZoneId.of("America/Sao_Paulo"))
+        return completedAt.atZone(UTC)
+                .withZoneSameInstant(BRASILIA)
                 .toLocalDate();
     }
 
     private LocalDate createdAtToBrasiliaDate(LocalDateTime createdAt) {
         if (createdAt == null) return null;
-        return createdAt.atZone(ZoneId.of("UTC"))
-                .withZoneSameInstant(ZoneId.of("America/Sao_Paulo"))
+        return createdAt.atZone(UTC)
+                .withZoneSameInstant(BRASILIA)
                 .toLocalDate();
+    }
+
+    private LocalDate todayBrasilia() {
+        return LocalDate.now(BRASILIA);
+    }
+
+    private LocalDateTime nowUtc() {
+        return LocalDateTime.now(ZoneOffset.UTC);
     }
 
     private String normalizeRecurrenceDays(List<Integer> days) {
@@ -87,7 +104,7 @@ public class TaskService {
         }
     }
 
-    private Task copyForDate(Task task, LocalDate date) {
+    private Task buildTaskView(Task task, boolean completed) {
         Task copy = new Task();
         copy.setId(task.getId());
         copy.setTitle(task.getTitle());
@@ -96,11 +113,8 @@ public class TaskService {
         copy.setRecurrenceDays(task.getRecurrenceDays());
         copy.setDueTime(task.getDueTime());
         copy.setAgendaEvent(task.isAgendaEvent());
-        copy.setRoutine(task.getRoutine());
-        copy.setUser(task.getUser());
-
-        LocalDate completedDate = completedAtToBrasiliaDate(task.getCompletedAt());
-        copy.setCompleted(completedDate != null && completedDate.equals(date));
+        copy.setDueDate(task.getDueDate());
+        copy.setCompleted(completed);
         return copy;
     }
 
@@ -108,6 +122,43 @@ public class TaskService {
         LocalDate createdDate = createdAtToBrasiliaDate(task.getCreatedAt());
         if (createdDate == null) return true;
         return !date.isBefore(createdDate);
+    }
+
+    private boolean isScheduledOnDate(Task task, LocalDate date) {
+        if (!isOnOrAfterCreation(task, date)) return false;
+        if (task.getDueDate() != null) return task.getDueDate().equals(date);
+        if (task.isRecurrent()) return true;
+
+        String recurrenceDays = task.getRecurrenceDays();
+        if (recurrenceDays != null && !recurrenceDays.trim().isEmpty()) {
+            return matchesRecurrenceDay(task, date);
+        }
+
+        // Fallback para tarefas de rotina sem dias definidos (evita "sumir")
+        return !task.isAgendaEvent();
+    }
+
+    private Set<Long> completedTaskIdsForDate(List<Task> tasks, LocalDate date) {
+        if (tasks.isEmpty()) return Collections.emptySet();
+
+        List<Long> taskIds = tasks.stream().map(Task::getId).toList();
+        Set<Long> completedIds = new HashSet<>();
+
+        List<TaskCompletion> completions = taskCompletionRepository
+                .findByTaskIdInAndCompletedDate(taskIds, date);
+        for (TaskCompletion completion : completions) {
+            completedIds.add(completion.getTask().getId());
+        }
+
+        // Fallback para completions antigas (antes da tabela task_completions)
+        for (Task task : tasks) {
+            LocalDate legacyDate = completedAtToBrasiliaDate(task.getCompletedAt());
+            if (legacyDate != null && legacyDate.equals(date)) {
+                completedIds.add(task.getId());
+            }
+        }
+
+        return completedIds;
     }
 
     public Task create(TaskRequest request, String email) {
@@ -120,13 +171,17 @@ public class TaskService {
         task.setAgendaEvent(request.isAgendaEvent());
         task.setDueTime(request.getDueTime());
         task.setUser(user);
-        task.setRecurrenceDays(normalizeRecurrenceDays(request.getRecurrenceDays()));
+        String normalizedDays = normalizeRecurrenceDays(request.getRecurrenceDays());
+        task.setRecurrenceDays(normalizedDays);
 
         if (request.isAgendaEvent()) {
             task.setDueDate(request.getDueDate());
             task.setRecurrent(false);
             task.setRecurrenceDays(null);
         } else {
+            if (!request.isRecurrent() && normalizedDays == null) {
+                throw new RuntimeException("Selecione ao menos um dia ou marque como recorrente!");
+            }
             Routine routine = routineService.findById(request.getRoutineId(), email);
             task.setRoutine(routine);
             task.setDueDate(null);
@@ -139,65 +194,25 @@ public class TaskService {
     }
 
     public List<Task> findToday(String email, LocalDate today) {
-        User user = userService.findByEmail(email);
-
-        List<Task> todayTasks = taskRepository.findByUserIdAndDueDate(user.getId(), today).stream()
-                .filter(task -> isOnOrAfterCreation(task, today))
-                .collect(Collectors.toList());
-        List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true).stream()
-                .filter(task -> isOnOrAfterCreation(task, today))
-                .collect(Collectors.toList());
-        List<Task> weeklyTasks = taskRepository.findByUserIdAndRecurrenceDaysIsNotNull(user.getId());
-
-        recurrentTasks.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
-
-        List<Task> matchingWeekly = weeklyTasks.stream()
-                .filter(task -> matchesRecurrenceDay(task, today))
-                .filter(task -> isOnOrAfterCreation(task, today))
-                .collect(Collectors.toList());
-        matchingWeekly.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
-
-        List<Task> result = new ArrayList<>(todayTasks);
-        result.addAll(recurrentTasks);
-        result.addAll(matchingWeekly);
-        return result;
+        return findByDate(email, today, today);
     }
 
     public List<Task> findByDate(String email, LocalDate date, LocalDate today) {
         User user = userService.findByEmail(email);
-
-        List<Task> dateTasks = taskRepository.findByUserIdAndDueDate(user.getId(), date).stream()
-                .filter(task -> isOnOrAfterCreation(task, date))
+        List<Task> scheduled = taskRepository.findByUserId(user.getId()).stream()
+                .filter(task -> isScheduledOnDate(task, date))
                 .collect(Collectors.toList());
-        List<Task> recurrentTasks = taskRepository.findByUserIdAndRecurrent(user.getId(), true);
-        List<Task> weeklyTasks = taskRepository.findByUserIdAndRecurrenceDaysIsNotNull(user.getId());
 
         if (date.equals(today)) {
-            recurrentTasks = recurrentTasks.stream()
-                    .filter(task -> isOnOrAfterCreation(task, today))
-                    .collect(Collectors.toList());
-            recurrentTasks.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
-            List<Task> matchingWeekly = weeklyTasks.stream()
-                    .filter(task -> matchesRecurrenceDay(task, today))
-                    .filter(task -> isOnOrAfterCreation(task, today))
-                    .collect(Collectors.toList());
-            matchingWeekly.forEach(task -> resetIfCompletedOnAnotherDay(task, today));
-            weeklyTasks = matchingWeekly;
-        } else {
-            recurrentTasks = recurrentTasks.stream()
-                    .filter(task -> isOnOrAfterCreation(task, date))
-                    .map(task -> copyForDate(task, date))
-                    .collect(Collectors.toList());
-            weeklyTasks = weeklyTasks.stream()
-                    .filter(task -> matchesRecurrenceDay(task, date))
-                    .filter(task -> isOnOrAfterCreation(task, date))
-                    .map(task -> copyForDate(task, date))
-                    .collect(Collectors.toList());
+            scheduled.stream()
+                    .filter(task -> !task.isAgendaEvent())
+                    .forEach(task -> resetIfCompletedOnAnotherDay(task, today));
         }
 
-        List<Task> result = new ArrayList<>(dateTasks);
-        result.addAll(recurrentTasks);
-        result.addAll(weeklyTasks);
+        Set<Long> completedIds = completedTaskIdsForDate(scheduled, date);
+        List<Task> result = scheduled.stream()
+                .map(task -> buildTaskView(task, completedIds.contains(task.getId())))
+                .collect(Collectors.toList());
 
         result.sort((a, b) -> {
             if (a.getDueTime() == null && b.getDueTime() == null) return 0;
@@ -225,8 +240,20 @@ public class TaskService {
         User user = userService.findByEmail(email);
         Task task = taskRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new RuntimeException("Tarefa não encontrada!"));
+        LocalDate completionDate = todayBrasilia();
+        LocalDateTime completionAt = nowUtc();
+
+        TaskCompletion completion = taskCompletionRepository
+                .findByTaskIdAndCompletedDate(task.getId(), completionDate)
+                .orElseGet(TaskCompletion::new);
+        completion.setTask(task);
+        completion.setCompletedDate(completionDate);
+        completion.setCompletedAt(completionAt);
+        taskCompletionRepository.save(completion);
+
+        // Mantem compatibilidade com telas antigas (estado "concluido hoje")
         task.setCompleted(true);
-        task.setCompletedAt(LocalDateTime.now());
+        task.setCompletedAt(completionAt);
         return taskRepository.save(task);
     }
 
@@ -240,17 +267,21 @@ public class TaskService {
         task.setRecurrent(request.isRecurrent());
         task.setDueTime(request.getDueTime());
         task.setAgendaEvent(request.isAgendaEvent());
+        String normalizedDays = normalizeRecurrenceDays(request.getRecurrenceDays());
 
         if (request.isAgendaEvent()) {
             task.setDueDate(request.getDueDate());
             task.setRecurrent(false);
             task.setRecurrenceDays(null);
         } else {
+            if (!request.isRecurrent() && normalizedDays == null) {
+                throw new RuntimeException("Selecione ao menos um dia ou marque como recorrente!");
+            }
             task.setDueDate(null);
             if (request.isRecurrent()) {
                 task.setRecurrenceDays(null);
             } else {
-                task.setRecurrenceDays(normalizeRecurrenceDays(request.getRecurrenceDays()));
+                task.setRecurrenceDays(normalizedDays);
             }
         }
 

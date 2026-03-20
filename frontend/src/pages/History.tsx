@@ -28,34 +28,11 @@ export default function History() {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch('https://dayflow-production-724d.up.railway.app/tasks', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/score/history?days=30', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      const tasks = await response.json()
-
-      const now = new Date()
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-
-      const grouped: Record<string, { total: number, completed: number }> = {}
-
-      tasks.forEach((task: any) => {
-        const date = task.recurrent ? today : task.dueDate
-        if (!date) return
-        if (!grouped[date]) grouped[date] = { total: 0, completed: 0 }
-        grouped[date].total++
-        if (task.completed) grouped[date].completed++
-      })
-
-      const result: DailyProgress[] = Object.entries(grouped)
-        .map(([date, data]) => ({
-          date,
-          total: data.total,
-          completed: data.completed,
-          percentage: Math.round((data.completed / data.total) * 100)
-        }))
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-      setHistory(result)
+      const data = await response.json()
+      setHistory(data)
     } catch {
       toast.error('Erro ao carregar histórico!')
     } finally {
@@ -63,14 +40,16 @@ export default function History() {
     }
   }
 
-  const getColor = (percentage: number) => {
+  const getColor = (percentage: number, total?: number) => {
+    if (total === 0) return 'bg-white/15'
     if (percentage === 100) return 'bg-green-500'
     if (percentage >= 70) return 'bg-blue-500'
     if (percentage >= 40) return 'bg-yellow-500'
     return 'bg-red-500'
   }
 
-  const getTextColor = (percentage: number) => {
+  const getTextColor = (percentage: number, total?: number) => {
+    if (total === 0) return 'text-white/30'
     if (percentage === 100) return 'text-green-400'
     if (percentage >= 70) return 'text-blue-400'
     if (percentage >= 40) return 'text-yellow-400'
@@ -82,11 +61,12 @@ export default function History() {
     return date.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })
   }
 
-  const avgPercentage = history.length > 0
-    ? Math.round(history.reduce((acc, d) => acc + d.percentage, 0) / history.length)
+  const daysWithTasks = history.filter(d => d.total > 0)
+  const avgPercentage = daysWithTasks.length > 0
+    ? Math.round(daysWithTasks.reduce((acc, d) => acc + d.percentage, 0) / daysWithTasks.length)
     : 0
 
-  const perfectDays = history.filter(d => d.percentage === 100).length
+  const perfectDays = daysWithTasks.filter(d => d.percentage === 100).length
 
   const fadeUp = (delay: number) => ({
     opacity: visible ? 1 : 0,
@@ -141,12 +121,12 @@ export default function History() {
               <div className="flex items-end gap-2 h-40 overflow-x-auto pb-2">
                 {[...history].reverse().map((day, i) => (
                   <div key={i} className="flex flex-col items-center gap-2 min-w-[48px]">
-                    <span className={`text-xs font-medium ${getTextColor(day.percentage)}`}>
+                    <span className={`text-xs font-medium ${getTextColor(day.percentage, day.total)}`}>
                       {animated ? day.percentage : 0}%
                     </span>
                     <div className="w-full flex flex-col justify-end" style={{ height: '100px' }}>
                       <div
-                        className={`w-full rounded-t-lg ${getColor(day.percentage)}`}
+                        className={`w-full rounded-t-lg ${getColor(day.percentage, day.total)}`}
                         style={{
                           height: animated ? `${Math.max(day.percentage, 4)}%` : '4px',
                           transition: `height 0.8s ease ${i * 100}ms`
@@ -180,20 +160,24 @@ export default function History() {
                       transform: visible ? 'translateY(0)' : 'translateY(10px)',
                       transition: `all 0.4s ease ${600 + i * 80}ms`
                     }}>
-                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getColor(day.percentage)}`} />
+                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getColor(day.percentage, day.total)}`} />
                     <div className="flex-1">
                       <p className="text-white text-sm font-medium">{formatDate(day.date)}</p>
-                      <p className="text-white/40 text-xs">{day.completed} de {day.total} tarefas concluídas</p>
+                      {day.total === 0 ? (
+                        <p className="text-white/30 text-xs">Sem tarefas neste dia</p>
+                      ) : (
+                        <p className="text-white/40 text-xs">{day.completed} de {day.total} tarefas concluídas</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="w-24 h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${getColor(day.percentage)}`}
+                        <div className={`h-full rounded-full ${getColor(day.percentage, day.total)}`}
                           style={{
                             width: animated ? `${day.percentage}%` : '0%',
                             transition: `width 0.8s ease ${i * 100}ms`
                           }} />
                       </div>
-                      <span className={`text-sm font-semibold min-w-[40px] text-right ${getTextColor(day.percentage)}`}>
+                      <span className={`text-sm font-semibold min-w-[40px] text-right ${getTextColor(day.percentage, day.total)}`}>
                         {day.percentage}%
                       </span>
                     </div>
