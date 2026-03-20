@@ -1,6 +1,7 @@
 package com.dayflow.backend.service;
 
 import com.dayflow.backend.dto.DailyProgress;
+import com.dayflow.backend.dto.HistoryPage;
 import com.dayflow.backend.model.Task;
 import com.dayflow.backend.model.TaskCompletion;
 import com.dayflow.backend.model.User;
@@ -311,6 +312,22 @@ public class ScoreService {
 
         result.sort((a, b) -> b.getDate().compareTo(a.getDate()));
         return result;
+    }
+
+    public HistoryPage getHistoryPage(Long userId, int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, size);
+
+        List<DailyProgress> all = getHistory(userId);
+        int total = all.size();
+        int from = safePage * safeSize;
+        if (from >= total) {
+            return new HistoryPage(new ArrayList<>(), safePage, safeSize, total, false);
+        }
+        int to = Math.min(from + safeSize, total);
+        List<DailyProgress> items = all.subList(from, to);
+        boolean hasMore = to < total;
+        return new HistoryPage(items, safePage, safeSize, total, hasMore);
     }
 
     public List<Map<String, Object>> getRanking() {
