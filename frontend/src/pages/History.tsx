@@ -28,7 +28,7 @@ export default function History() {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch('https://dayflow-production-724d.up.railway.app/score/history?days=30', {
+      const response = await fetch('https://dayflow-production-724d.up.railway.app/score/history', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await response.json()

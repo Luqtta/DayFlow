@@ -100,6 +100,86 @@ public class ScoreService {
         return !task.isAgendaEvent();
     }
 
+    private LocalDate firstScheduledDate(Task task, LocalDate today) {
+        if (task.getDueDate() != null) return task.getDueDate();
+
+        LocalDate createdDate = createdAtToBrasiliaDate(task.getCreatedAt());
+        if (createdDate == null) createdDate = today;
+
+        if (task.isRecurrent()) return createdDate;
+
+        String recurrenceDays = task.getRecurrenceDays();
+        if (recurrenceDays != null && !recurrenceDays.trim().isEmpty()) {
+            LocalDate cursor = createdDate;
+            for (int i = 0; i < 7; i++) {
+                if (matchesRecurrenceDay(task, cursor)) return cursor;
+                cursor = cursor.plusDays(1);
+            }
+            return createdDate;
+        }
+
+        // Fallback for routine tasks without days
+        return createdDate;
+    }
+
+    private LocalDate computeHistoryStart(List<Task> tasks, LocalDate today) {
+        LocalDate first = null;
+        for (Task task : tasks) {
+            LocalDate candidate = firstScheduledDate(task, today);
+            if (candidate == null) continue;
+            if (candidate.isAfter(today)) continue;
+            if (first == null || candidate.isBefore(first)) first = candidate;
+        }
+        return first;
+    }
+
+    private Map<LocalDate, DayStats> buildDailyStatsRange(Long userId, LocalDate start, LocalDate end, List<Task> tasks) {
+        Map<LocalDate, DayStats> stats = new LinkedHashMap<>();
+        LocalDate cursor = start;
+        while (!cursor.isAfter(end)) {
+            stats.put(cursor, new DayStats());
+            cursor = cursor.plusDays(1);
+        }
+
+        for (Map.Entry<LocalDate, DayStats> entry : stats.entrySet()) {
+            LocalDate date = entry.getKey();
+            DayStats day = entry.getValue();
+            for (Task task : tasks) {
+                if (isScheduledOnDate(task, date)) day.total++;
+            }
+        }
+
+        List<TaskCompletion> completions = taskCompletionRepository
+                .findByTaskUserIdAndCompletedDateBetween(userId, start, end);
+        Set<String> completionKeys = new HashSet<>();
+        for (TaskCompletion completion : completions) {
+            LocalDate date = completion.getCompletedDate();
+            Task task = completion.getTask();
+            completionKeys.add(task.getId() + "|" + date);
+
+            DayStats day = stats.get(date);
+            if (day != null && isScheduledOnDate(task, date)) {
+                day.completed++;
+            }
+        }
+
+        // Legacy fallback for old completions (before task_completions table)
+        for (Task task : tasks) {
+            LocalDate legacyDate = toBrasiliaDate(task.getCompletedAt());
+            if (legacyDate == null) continue;
+            if (legacyDate.isBefore(start) || legacyDate.isAfter(end)) continue;
+            String key = task.getId() + "|" + legacyDate;
+            if (completionKeys.contains(key)) continue;
+
+            DayStats day = stats.get(legacyDate);
+            if (day != null && isScheduledOnDate(task, legacyDate)) {
+                day.completed++;
+            }
+        }
+
+        return stats;
+    }
+
     private Map<LocalDate, DayStats> buildDailyStats(Long userId, int days) {
         int safeDays = Math.max(1, days);
         LocalDate today = todayBrasilia();
@@ -211,13 +291,21 @@ public class ScoreService {
         return result;
     }
 
-    public List<DailyProgress> getHistory(Long userId, int days) {
-        Map<LocalDate, DayStats> stats = buildDailyStats(userId, days);
+    public List<DailyProgress> getHistory(Long userId) {
+        List<Task> tasks = taskRepository.findByUserId(userId);
+        if (tasks.isEmpty()) return new ArrayList<>();
+
+        LocalDate today = todayBrasilia();
+        LocalDate start = computeHistoryStart(tasks, today);
+        if (start == null) return new ArrayList<>();
+
+        Map<LocalDate, DayStats> stats = buildDailyStatsRange(userId, start, today, tasks);
         List<DailyProgress> result = new ArrayList<>();
 
         for (Map.Entry<LocalDate, DayStats> entry : stats.entrySet()) {
             DayStats day = entry.getValue();
-            int percentage = day.total == 0 ? 0 : (int) Math.round(((double) day.completed / day.total) * 100);
+            if (day.total == 0) continue;
+            int percentage = (int) Math.round(((double) day.completed / day.total) * 100);
             result.add(new DailyProgress(entry.getKey(), day.total, day.completed, percentage));
         }
 

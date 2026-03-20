@@ -41,9 +41,8 @@ public class ScoreController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<DailyProgress>> getHistory(@AuthenticationPrincipal UserDetails userDetails,
-                                                          @RequestParam(defaultValue = "30") int days) {
+    public ResponseEntity<List<DailyProgress>> getHistory(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userService.findByEmail(userDetails.getUsername());
-        return ResponseEntity.ok(scoreService.getHistory(user.getId(), days));
+        return ResponseEntity.ok(scoreService.getHistory(user.getId()));
     }
 }
