@@ -21,13 +21,13 @@ export default function Sidebar() {
   return (
     <>
       {/* Sidebar desktop */}
-      <aside className="hidden lg:flex w-64 bg-white/5 border-r border-white/10 flex-col min-h-screen">
+      <aside className="hidden lg:flex w-64 bg-white/5 border-r border-white/10 flex-col h-screen sticky top-0">
         <div className="p-6 border-b border-white/10">
           <h1 className="text-2xl font-bold text-white">DayFlow</h1>
           <p className="text-purple-300 text-sm mt-1">Organize sua rotina</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {navItems.map(item => (
             <button key={item.path} onClick={() => navigate(item.path)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium
