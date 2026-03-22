@@ -1,177 +1,177 @@
+# DayFlow
+
+DayFlow e uma aplicacao web full stack para gestao de rotinas e tarefas, com autenticao, historico de desempenho, score e ranking.
+
 <div align="center">
-
-# 🌊 DayFlow
-
-**Organize sua rotina, evolua todos os dias.**
-
-DayFlow é uma aplicação web full stack de gerenciamento de rotinas pessoais com sistema de gamificação, ranking global e acompanhamento de progresso diário.
-
-<img width="1861" height="916" alt="Image" src="https://github.com/user-attachments/assets/00bcd64b-12eb-4b46-ba85-278b45a76fc5" />
-
+  <img width="1861" height="916" alt="DayFlow preview" src="https://github.com/user-attachments/assets/00bcd64b-12eb-4b46-ba85-278b45a76fc5" />
 </div>
 
----
+## Visao Geral
 
-## ✨ Funcionalidades
+- Backend REST com autenticacao JWT e controle de acesso.
+- CRUD de rotinas e tarefas (pontuais, recorrentes e por agenda).
+- Monitoramento diario por data, mes e historico paginado.
+- Sistema de score com grade (S, A, B, C, D) e ranking global.
+- Fluxos de conta: registro, verificacao de email e recuperacao de senha.
 
-- 🔐 **Autenticação segura** — registro e login com JWT
-- 📋 **Rotinas personalizadas** — crie rotinas com categorias como estudo, saúde e trabalho
-- ✅ **Checklist diário** — marque tarefas e acompanhe seu progresso em tempo real
-- 🔁 **Tarefas recorrentes** — tarefas que aparecem automaticamente todo dia
-- 📊 **Histórico** — veja seu desempenho nos últimos dias com gráficos animados
-- 🏆 **Sistema de score e grades** — ganhe grades de D até S baseado no seu desempenho
-- 🌍 **Ranking global** — compete com outros usuários pelo topo
-- 👤 **Perfil com avatar** — personalize seu perfil com foto via Cloudinary
-- ⚙️ **Configurações** — edite nome, senha e foto de perfil
+## Arquitetura
 
----
+```text
+dayflow/
+|-- backend/    # API REST em Java + Spring Boot
+`-- frontend/   # SPA em React + TypeScript
+```
 
-## 🛠️ Stack
+## Stack Tecnologica
 
 ### Backend
-| Tecnologia | Uso |
+
+| Tecnologia | Versao/uso |
 |---|---|
-| Java 21 | Linguagem principal |
-| Spring Boot 3.5 | Framework web |
-| Spring Security | Autenticação e autorização |
-| JWT | Tokens de autenticação |
-| Spring Data JPA | Acesso ao banco de dados |
+| Java | 21 |
+| Spring Boot | 3.5.11 |
+| Spring Security | Autenticacao e autorizacao |
+| JWT (jjwt) | Emissao e validacao de token |
+| Spring Data JPA | Persistencia |
 | PostgreSQL | Banco de dados relacional |
-| Maven | Gerenciador de dependências |
-| Docker | Ambiente de desenvolvimento |
+| Maven | Build e gerenciamento de dependencias |
 
 ### Frontend
-| Tecnologia | Uso |
+
+| Tecnologia | Versao/uso |
 |---|---|
-| React 18 | Framework de UI |
-| TypeScript | Tipagem estática |
-| Tailwind CSS | Estilização |
-| Vite | Build tool |
-| React Router DOM | Navegação |
-| Sonner | Notificações toast |
-| Lucide React | Ícones |
-| Cloudinary | Upload de imagens |
+| React | 19 |
+| TypeScript | 5.9 |
+| Vite | 8 |
+| Tailwind CSS | 4 |
+| React Router DOM | 7 |
+| Sonner | Notificacoes |
+| Lucide React | Iconografia |
 
----
+## Requisitos
 
-## 📁 Estrutura do projeto
-```
-dayflow/
-├── backend/                  # API REST em Java + Spring Boot
-│   └── src/main/java/
-│       └── com/dayflow/backend/
-│           ├── config/       # JWT, Security, Filtros
-│           ├── controller/   # Endpoints da API
-│           ├── dto/          # Objetos de transferência
-│           ├── model/        # Entidades do banco
-│           ├── repository/   # Acesso ao banco
-│           └── service/      # Regras de negócio
-│
-└── dayflow-frontend/         # Interface em React + TypeScript
-    └── src/
-        ├── components/       # Componentes reutilizáveis
-        └── pages/            # Páginas da aplicação
-```
+- Java 21
+- Maven 3.9+ (ou wrapper `./mvnw`)
+- Node.js 20+
+- npm
+- Docker (opcional, para subir PostgreSQL rapidamente)
 
----
+## Configuracao de Ambiente (Backend)
 
-## 🚀 Como rodar localmente
+O backend usa `backend/src/main/resources/application.yaml` com fallback para variaveis de ambiente:
 
-### Pré-requisitos
+| Variavel | Valor padrao |
+|---|---|
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/dayflow` |
+| `SPRING_DATASOURCE_USERNAME` | `postgres` |
+| `SPRING_DATASOURCE_PASSWORD` | `postgres` |
+| `SPRING_JPA_HIBERNATE_DDL_AUTO` | `update` |
+| `BREVO_API_KEY` | sem padrao |
+| `BREVO_FROM_EMAIL` | sem padrao |
+| `BREVO_FROM_NAME` | sem padrao |
 
-- [Java 21](https://adoptium.net/)
-- [Maven](https://maven.apache.org/)
-- [Node.js 18+](https://nodejs.org/)
-- [Docker](https://www.docker.com/)
+Observacao: os fluxos de email (verificacao e recuperacao) dependem da configuracao Brevo.
 
-### 1. Clone o repositório
+## Execucao Local
+
+### 1. Clonar repositorio
+
 ```bash
 git clone https://github.com/Luqtta/dayflow.git
 cd dayflow
 ```
 
-### 2. Suba o banco de dados com Docker
+### 2. Subir PostgreSQL com Docker
+
 ```bash
 docker run --name dayflow-postgres \
   -e POSTGRES_PASSWORD=postgres \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_DB=dayflow \
-  -p 5432:5432 -d postgres
+  -p 5432:5432 \
+  -d postgres
 ```
 
-### 3. Rode o backend
+### 3. Rodar backend
+
 ```bash
 cd backend
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
-A API estará disponível em `https://dayflow-production-724d.up.railway.app`
+API local: `http://localhost:8080`
 
-### 4. Rode o frontend
+### 4. Rodar frontend
+
 ```bash
-cd dayflow-frontend
-npm install --legacy-peer-deps
+cd frontend
+npm install
 npm run dev
 ```
 
-O app estará disponível em `http://localhost:5173`
+App local: `http://localhost:5173`
 
----
+### 5. Observacao importante para desenvolvimento local
 
-## 📡 Principais endpoints da API
+No estado atual do repositorio, o frontend referencia a API de producao diretamente (`https://dayflow-production-724d.up.railway.app`) em varios arquivos de `frontend/src`.
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
+Para usar o backend local, substitua essas URLs por `http://localhost:8080` (idealmente centralizando em uma variavel de ambiente no frontend).
+
+## Endpoints Principais da API
+
+Todas as rotas fora de `/auth/**` exigem autenticacao JWT.
+
+| Metodo | Rota | Descricao |
+|---|---|---|
 | POST | `/auth/register` | Criar conta |
-| POST | `/auth/login` | Fazer login |
-| GET | `/auth/profile` | Perfil do usuário |
+| POST | `/auth/verify-email` | Verificar email com codigo |
+| POST | `/auth/resend-code` | Reenviar codigo de verificacao |
+| POST | `/auth/forgot-password` | Solicitar codigo de redefinicao |
+| POST | `/auth/reset-password` | Redefinir senha |
+| POST | `/auth/login` | Autenticar usuario |
+| GET | `/auth/profile` | Obter perfil autenticado |
 | PATCH | `/auth/avatar` | Atualizar avatar |
 | PATCH | `/auth/name` | Atualizar nome |
-| PATCH | `/auth/password` | Alterar senha |
+| PATCH | `/auth/password` | Atualizar senha |
 | GET | `/routines` | Listar rotinas |
 | POST | `/routines` | Criar rotina |
-| PUT | `/routines/{id}` | Editar rotina |
-| DELETE | `/routines/{id}` | Deletar rotina |
-| GET | `/tasks/today` | Tarefas do dia |
+| GET | `/routines/{id}` | Buscar rotina por id |
+| PUT | `/routines/{id}` | Atualizar rotina |
+| DELETE | `/routines/{id}` | Remover rotina |
+| GET | `/tasks` | Listar tarefas |
 | POST | `/tasks` | Criar tarefa |
-| PUT | `/tasks/{id}` | Editar tarefa |
-| PATCH | `/tasks/{id}/complete` | Concluir tarefa |
-| DELETE | `/tasks/{id}` | Deletar tarefa |
-| GET | `/score/me` | Score do usuário |
-| GET | `/score/ranking` | Ranking global |
+| GET | `/tasks/today` | Listar tarefas do dia |
+| GET | `/tasks/date` | Listar tarefas por data |
+| GET | `/tasks/month` | Listar tarefas por mes |
+| GET | `/tasks/routine/{routineId}` | Listar tarefas por rotina |
+| PATCH | `/tasks/{id}/complete` | Marcar tarefa como concluida |
+| PUT | `/tasks/{id}` | Atualizar tarefa |
+| DELETE | `/tasks/{id}` | Remover tarefa |
+| GET | `/score/me` | Obter score do usuario autenticado |
+| GET | `/score/ranking` | Obter ranking global |
+| GET | `/score/history?page=0&size=30` | Historico paginado de progresso |
 
----
+## Modelo de Score
 
-## 🎮 Sistema de Score
+Janela de calculo: ultimos 30 dias.
 
-O score é calculado com base em 3 fatores:
+Componentes do score:
 
-| Fator | Peso | Descrição |
-|-------|------|-----------|
-| Média geral | 40% | % médio de tarefas concluídas por dia |
-| Streak | 40% | Dias consecutivos com pelo menos 1 tarefa concluída |
-| Dias perfeitos | 20% | Dias com 100% das tarefas concluídas |
+- `avgScore = avgCompletion * 100 * 0.60 * coverage`
+- `streakScore = (streak / 30) * 100 * 0.25`
+- `perfectScore = (perfectDays / 30) * 100 * 0.15`
+- `scoreFinal = round(avgScore + streakScore + perfectScore)` limitado entre 0 e 100
 
-### Grades
+Grades:
 
-| Grade | Pontuação | Descrição |
-|-------|-----------|-----------|
-| 🏆 S | 90 - 100 | Lendário |
-| ⭐ A | 75 - 89 | Excelente |
-| 👍 B | 55 - 74 | Bom |
-| 📈 C | 35 - 54 | Regular |
-| 🔰 D | 0 - 34 | Iniciante |
+| Grade | Intervalo |
+|---|---|
+| S | 90-100 |
+| A | 75-89 |
+| B | 55-74 |
+| C | 30-54 |
+| D | 0-29 |
 
----
+## Licenca
 
-## 👨‍💻 Desenvolvedor
-
-Feito com 💜 por **Lucas** — 16 anos, desenvolvedor full stack em formação.
-
-[![GitHub](https://img.shields.io/badge/GitHub-Luqtta-purple?style=flat&logo=github)](https://github.com/Luqtta)
-
----
-
-<div align="center">
-  <sub>DayFlow — Organize sua rotina, evolua todos os dias 🌊</sub>
-</div>
+Projeto sob licenca MIT. Consulte [`LICENSE`](LICENSE).
