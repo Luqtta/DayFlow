@@ -86,6 +86,17 @@ public class TaskController {
         }
     }
 
+    @PatchMapping("/{id}/uncomplete")
+    public ResponseEntity<?> uncomplete(@PathVariable Long id,
+                                        @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            Task task = taskService.uncomplete(id, userDetails.getUsername());
+            return ResponseEntity.ok(task);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id,
                                      @RequestBody TaskRequest request,

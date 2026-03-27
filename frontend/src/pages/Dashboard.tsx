@@ -14,6 +14,7 @@ interface Task {
   completed: boolean
   dueDate: string
   dueTime: string | null
+  endTime: string | null
   completedAt: string | null
   createdAt: string
 }
@@ -95,17 +96,18 @@ export default function Dashboard() {
     }
   }
 
-  const completeTask = async (id: number) => {
+  const toggleTask = async (task: Task) => {
+    const endpoint = task.completed ? 'uncomplete' : 'complete'
     try {
-      const response = await fetch(`https://dayflow-production-724d.up.railway.app/tasks/${id}/complete`, {
+      const response = await fetch(`https://dayflow-production-724d.up.railway.app/tasks/${task.id}/${endpoint}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (!response.ok) return
-      setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: true } : t))
-      toast.success('Tarefa concluída! 🎉')
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, completed: !task.completed } : t))
+      if (!task.completed) toast.success('Tarefa concluída! 🎉')
     } catch {
-      toast.error('Erro ao concluir tarefa!')
+      toast.error('Erro ao atualizar tarefa!')
     }
   }
 
@@ -233,10 +235,9 @@ export default function Dashboard() {
                       transform: visible ? 'translateY(0)' : 'translateY(10px)',
                       transition: `all 0.4s ease ${900 + index * 60}ms`
                     }}>
-                    <button onClick={() => !task.completed && completeTask(task.id)}
-                      disabled={task.completed} className="flex-shrink-0 transition">
+                    <button onClick={() => toggleTask(task)} className="flex-shrink-0 transition">
                       {task.completed
-                        ? <CheckCircle2 size={22} className="text-green-400" />
+                        ? <CheckCircle2 size={22} className="text-green-400 hover:text-green-300 transition" />
                         : <Circle size={22} className="text-white/30 hover:text-purple-400 transition" />
                       }
                     </button>
@@ -247,7 +248,9 @@ export default function Dashboard() {
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         {task.dueTime && (
                           <span className="text-purple-300 text-xs flex items-center gap-1">
-                            <Clock size={10} /> {task.dueTime.slice(0, 5)}
+                            <Clock size={10} />
+                            {task.dueTime.slice(0, 5)}
+                            {task.endTime && ` – ${task.endTime.slice(0, 5)}`}
                           </span>
                         )}
                         {task.description && (

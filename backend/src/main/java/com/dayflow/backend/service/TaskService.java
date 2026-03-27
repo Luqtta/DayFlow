@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -112,10 +113,18 @@ public class TaskService {
         copy.setRecurrent(task.isRecurrent());
         copy.setRecurrenceDays(task.getRecurrenceDays());
         copy.setDueTime(task.getDueTime());
+        copy.setEndTime(task.getEndTime());
         copy.setAgendaEvent(task.isAgendaEvent());
         copy.setDueDate(task.getDueDate());
         copy.setCompleted(completed);
+        copy.setCreatedAt(task.getCreatedAt());
         return copy;
+    }
+
+    private void validateTimes(LocalTime dueTime, LocalTime endTime) {
+        if (dueTime != null && endTime != null && !endTime.isAfter(dueTime)) {
+            throw new RuntimeException("O horário de fim deve ser maior que o horário de início!");
+        }
     }
 
     private boolean isOnOrAfterCreation(Task task, LocalDate date) {
@@ -165,11 +174,14 @@ public class TaskService {
         User user = userService.findByEmail(email);
 
         Task task = new Task();
+        validateTimes(request.getDueTime(), request.getEndTime());
+
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setRecurrent(request.isRecurrent());
         task.setAgendaEvent(request.isAgendaEvent());
         task.setDueTime(request.getDueTime());
+        task.setEndTime(request.getEndTime());
         task.setUser(user);
         String normalizedDays = normalizeRecurrenceDays(request.getRecurrenceDays());
         task.setRecurrenceDays(normalizedDays);
@@ -215,10 +227,13 @@ public class TaskService {
                 .collect(Collectors.toList());
 
         result.sort((a, b) -> {
-            if (a.getDueTime() == null && b.getDueTime() == null) return 0;
+            if (a.getDueTime() == null && b.getDueTime() == null) {
+                return Long.compare(a.getId(), b.getId());
+            }
             if (a.getDueTime() == null) return 1;
             if (b.getDueTime() == null) return -1;
-            return a.getDueTime().compareTo(b.getDueTime());
+            int cmp = a.getDueTime().compareTo(b.getDueTime());
+            return cmp != 0 ? cmp : Long.compare(a.getId(), b.getId());
         });
 
         return result;
@@ -257,15 +272,41 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
+    public Task uncomplete(Long id, String email) {
+        User user = userService.findByEmail(email);
+        Task task = taskRepository.findByIdAndUserId(id, user.getId())
+                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada!"));
+
+        LocalDate today = todayBrasilia();
+
+        // Remove completion record for today if it exists
+        taskCompletionRepository.findByTaskIdAndCompletedDate(task.getId(), today)
+                .ifPresent(taskCompletionRepository::delete);
+
+        // Reset legacy state only if was completed today
+        LocalDate legacyDate = completedAtToBrasiliaDate(task.getCompletedAt());
+        if (legacyDate != null && legacyDate.equals(today)) {
+            task.setCompleted(false);
+            task.setCompletedAt(null);
+            taskRepository.save(task);
+        }
+
+        task.setCompleted(false);
+        return task;
+    }
+
     public Task update(Long id, TaskRequest request, String email) {
         User user = userService.findByEmail(email);
         Task task = taskRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new RuntimeException("Tarefa não encontrada!"));
 
+        validateTimes(request.getDueTime(), request.getEndTime());
+
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setRecurrent(request.isRecurrent());
         task.setDueTime(request.getDueTime());
+        task.setEndTime(request.getEndTime());
         task.setAgendaEvent(request.isAgendaEvent());
         String normalizedDays = normalizeRecurrenceDays(request.getRecurrenceDays());
 

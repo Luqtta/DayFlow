@@ -48,4 +48,12 @@ public class ScoreController {
         User user = userService.findByEmail(userDetails.getUsername());
         return ResponseEntity.ok(scoreService.getHistoryPage(user.getId(), page, size));
     }
+
+    @GetMapping("/weekly")
+    public ResponseEntity<List<DailyProgress>> getWeeklyProgress(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int weekOffset) {
+        User user = userService.findByEmail(userDetails.getUsername());
+        return ResponseEntity.ok(scoreService.getWeeklyProgress(user.getId(), weekOffset));
+    }
 }

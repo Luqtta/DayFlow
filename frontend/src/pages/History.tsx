@@ -30,6 +30,9 @@ export default function History() {
   const [totalDays, setTotalDays] = useState(0)
   const [visible, setVisible] = useState(false)
   const [animated, setAnimated] = useState(false)
+  const [weekOffset, setWeekOffset] = useState(0)
+  const [weekData, setWeekData] = useState<DailyProgress[]>([])
+  const [loadingWeek, setLoadingWeek] = useState(false)
 
   useEffect(() => {
     if (!token) { navigate('/login'); return }
@@ -37,6 +40,27 @@ export default function History() {
     setTimeout(() => setVisible(true), 100)
     setTimeout(() => setAnimated(true), 600)
   }, [])
+
+  useEffect(() => {
+    if (token) fetchWeeklyProgress(weekOffset)
+  }, [weekOffset])
+
+  const fetchWeeklyProgress = async (offset: number) => {
+    if (!token) return
+    setLoadingWeek(true)
+    try {
+      const response = await fetch(
+        `https://dayflow-production-724d.up.railway.app/score/weekly?weekOffset=${offset}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      )
+      const data: DailyProgress[] = await response.json()
+      setWeekData(data)
+    } catch {
+      toast.error('Erro ao carregar gráfico!')
+    } finally {
+      setLoadingWeek(false)
+    }
+  }
 
   const fetchHistory = async (nextPage: number) => {
     if (!token) return
@@ -62,6 +86,12 @@ export default function History() {
   const loadMore = () => {
     if (!hasMore || loadingMore) return
     fetchHistory(page + 1)
+  }
+
+  const weekLabel = () => {
+    if (weekOffset === 0) return 'Esta semana'
+    if (weekOffset === 1) return 'Semana passada'
+    return `${weekOffset} semanas atrás`
   }
 
   const getColor = (percentage: number, total?: number) => {
@@ -90,8 +120,6 @@ export default function History() {
     : 0
 
   const perfectDays = history.filter(d => d.percentage === 100).length
-
-  const chartDays = history.slice(0, 30)
 
   const fadeUp = (delay: number) => ({
     opacity: visible ? 1 : 0,
@@ -140,35 +168,57 @@ export default function History() {
             </div>
           </div>
 
-          {history.length > 0 && (
-            <div style={fadeUp(400)} className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h3 className="text-white font-semibold mb-6">Progresso por dia</h3>
-              <div className="flex items-end gap-2 h-40 overflow-x-auto pb-2">
-                {[...chartDays].reverse().map((day, i) => (
-                  <div key={i} className="flex flex-col items-center gap-2 min-w-[48px]">
-                    <span className={`text-xs font-medium ${getTextColor(day.percentage, day.total)}`}>
+          <div style={fadeUp(400)} className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold">Progresso por dia</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setWeekOffset(w => w + 1)}
+                  className="text-white/40 hover:text-white transition p-1 rounded-lg hover:bg-white/10"
+                  title="Semana anterior"
+                >
+                  ‹
+                </button>
+                <span className="text-white/50 text-xs min-w-[90px] text-center">{weekLabel()}</span>
+                <button
+                  onClick={() => setWeekOffset(w => Math.max(0, w - 1))}
+                  disabled={weekOffset === 0}
+                  className="text-white/40 hover:text-white transition p-1 rounded-lg hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed"
+                  title="Próxima semana"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+
+            {loadingWeek ? (
+              <div className="h-40 flex items-center justify-center">
+                <p className="text-white/30 text-sm">Carregando...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                {weekData.map((day, i) => (
+                  <div key={i} className="flex flex-col items-center gap-1">
+                    <span className={`text-xs font-semibold ${getTextColor(day.percentage, day.total)}`}>
                       {animated ? day.percentage : 0}%
                     </span>
-                    <div className="w-full flex flex-col justify-end" style={{ height: '100px' }}>
+                    <div className="w-full flex flex-col justify-end rounded overflow-hidden" style={{ height: '80px' }}>
                       <div
-                        className={`w-full rounded-t-lg ${getColor(day.percentage, day.total)}`}
+                        className={`w-full rounded-t ${getColor(day.percentage, day.total)}`}
                         style={{
-                          height: animated ? `${Math.max(day.percentage, 4)}%` : '4px',
+                          height: animated ? `${Math.max(day.total > 0 ? day.percentage : 0, day.total > 0 ? 4 : 0)}%` : '0%',
                           transition: `height 0.8s ease ${i * 100}ms`
                         }}
                       />
                     </div>
-                    <span className="text-white/30 text-xs text-center leading-tight">
+                    <span className="text-white/30 text-[10px] sm:text-xs text-center leading-tight w-full truncate">
                       {formatDate(day.date)}
                     </span>
                   </div>
                 ))}
               </div>
-              {totalDays > chartDays.length && (
-                <p className="text-white/30 text-xs mt-3">Mostrando os últimos {chartDays.length} dias no gráfico</p>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
           <div style={fadeUp(500)} className="bg-white/5 border border-white/10 rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">Detalhes por dia</h3>

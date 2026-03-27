@@ -314,6 +314,31 @@ public class ScoreService {
         return result;
     }
 
+    /**
+     * Returns exactly 7 DailyProgress entries for the week window defined by weekOffset.
+     * weekOffset=0 → last 7 days (today-6 to today)
+     * weekOffset=1 → today-13 to today-7
+     * All 7 days are returned, including days with total=0 (no tasks scheduled).
+     */
+    public List<DailyProgress> getWeeklyProgress(Long userId, int weekOffset) {
+        int safeOffset = Math.max(0, weekOffset);
+        LocalDate today = todayBrasilia();
+        LocalDate end = today.minusDays((long) safeOffset * 7);
+        LocalDate start = end.minusDays(6);
+
+        List<Task> tasks = taskRepository.findByUserId(userId);
+        Map<LocalDate, DayStats> stats = buildDailyStatsRange(userId, start, end, tasks);
+
+        List<DailyProgress> result = new ArrayList<>();
+        for (Map.Entry<LocalDate, DayStats> entry : stats.entrySet()) {
+            DayStats day = entry.getValue();
+            int percentage = day.total == 0 ? 0 : (int) Math.round(((double) day.completed / day.total) * 100);
+            result.add(new DailyProgress(entry.getKey(), day.total, day.completed, percentage));
+        }
+        result.sort((a, b) -> a.getDate().compareTo(b.getDate()));
+        return result;
+    }
+
     public HistoryPage getHistoryPage(Long userId, int page, int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, size);

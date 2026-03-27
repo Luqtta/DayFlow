@@ -13,6 +13,7 @@ interface Task {
   completed: boolean
   dueDate: string
   dueTime: string | null
+  endTime: string | null
   recurrent: boolean
   recurrenceDays?: string | number[] | null
 }
@@ -104,6 +105,7 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
           description: editingTask.description,
           dueDate: null,
           dueTime: editingTask.dueTime || null,
+          endTime: editingTask.endTime || null,
           recurrent: editingTask.recurrent,
           recurrenceDays: editingTask.recurrent ? [] : parseRecurrenceDays(editingTask.recurrenceDays),
           routineId
@@ -199,11 +201,19 @@ function RoutineTasks({ routineId, token, refreshKey, onDelete }: {
                   onChange={e => setEditingTask({ ...editingTask, description: e.target.value })}
                   className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
               </div>
-              <div>
-                <label className="text-purple-200 text-sm mb-1 block">Horário (opcional)</label>
-                <input type="time" value={editingTask.dueTime ? editingTask.dueTime.slice(0, 5) : ''}
-                  onChange={e => setEditingTask({ ...editingTask, dueTime: e.target.value || null })}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-purple-200 text-sm mb-1 block">Início (opcional)</label>
+                  <input type="time" value={editingTask.dueTime ? editingTask.dueTime.slice(0, 5) : ''}
+                    onChange={e => setEditingTask({ ...editingTask, dueTime: e.target.value || null })}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+                </div>
+                <div>
+                  <label className="text-purple-200 text-sm mb-1 block">Fim (opcional)</label>
+                  <input type="time" value={editingTask.endTime ? editingTask.endTime.slice(0, 5) : ''}
+                    onChange={e => setEditingTask({ ...editingTask, endTime: e.target.value || null })}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+                </div>
               </div>
               <div onClick={() => setEditingTask({ ...editingTask, recurrent: !editingTask.recurrent, recurrenceDays: [] })}
                 className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition
@@ -278,6 +288,7 @@ export default function Routines() {
     title: '',
     description: '',
     dueTime: '',
+    endTime: '',
     recurrent: false,
     recurrenceDays: [] as number[]
   })
@@ -380,6 +391,7 @@ export default function Routines() {
           description: taskForm.description,
           dueDate: null,
           dueTime: taskForm.dueTime || null,
+          endTime: taskForm.endTime || null,
           recurrent: taskForm.recurrent,
           recurrenceDays: taskForm.recurrent ? [] : taskForm.recurrenceDays,
           routineId: selectedRoutineId
@@ -388,7 +400,7 @@ export default function Routines() {
       if (!response.ok) { toast.error('Erro ao criar tarefa!'); return }
       toast.success('Tarefa criada! 🎉')
       setShowTaskModal(false)
-      setTaskForm({ title: '', description: '', dueTime: '', recurrent: false, recurrenceDays: [] })
+      setTaskForm({ title: '', description: '', dueTime: '', endTime: '', recurrent: false, recurrenceDays: [] })
       setRefreshKeys(prev => ({ ...prev, [selectedRoutineId!]: (prev[selectedRoutineId!] || 0) + 1 }))
       setExpandedRoutine(selectedRoutineId)
     } catch {
@@ -618,11 +630,19 @@ export default function Routines() {
                   placeholder="Ex: Estudar JPA e Hibernate"
                   className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-400 transition" />
               </div>
-              <div>
-                <label className="text-purple-200 text-sm mb-1 block">Horário (opcional)</label>
-                <input type="time" value={taskForm.dueTime}
-                  onChange={e => setTaskForm({ ...taskForm, dueTime: e.target.value })}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-purple-200 text-sm mb-1 block">Início (opcional)</label>
+                  <input type="time" value={taskForm.dueTime}
+                    onChange={e => setTaskForm({ ...taskForm, dueTime: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+                </div>
+                <div>
+                  <label className="text-purple-200 text-sm mb-1 block">Fim (opcional)</label>
+                  <input type="time" value={taskForm.endTime}
+                    onChange={e => setTaskForm({ ...taskForm, endTime: e.target.value })}
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-400 transition" />
+                </div>
               </div>
               <div onClick={() => setTaskForm({ ...taskForm, recurrent: !taskForm.recurrent, recurrenceDays: [] })}
                 className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition

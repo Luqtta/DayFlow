@@ -9,6 +9,7 @@ public class TaskRequest {
     private String description;
     private LocalDate dueDate;
     private LocalTime dueTime;
+    private LocalTime endTime;
     private Long routineId;
     private boolean recurrent = false;
     private boolean agendaEvent = false;
@@ -25,6 +26,9 @@ public class TaskRequest {
 
     public LocalTime getDueTime() { return dueTime; }
     public void setDueTime(LocalTime dueTime) { this.dueTime = dueTime; }
+
+    public LocalTime getEndTime() { return endTime; }
+    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
 
     public Long getRoutineId() { return routineId; }
     public void setRoutineId(Long routineId) { this.routineId = routineId; }

@@ -31,6 +31,9 @@ public class Task {
     @Column(name = "due_time")
     private LocalTime dueTime;
 
+    @Column(name = "end_time")
+    private LocalTime endTime;
+
     @Column(name = "agenda_event", nullable = false)
     private boolean agendaEvent = false;
 
@@ -78,6 +81,9 @@ public class Task {
 
     public LocalTime getDueTime() { return dueTime; }
     public void setDueTime(LocalTime dueTime) { this.dueTime = dueTime; }
+
+    public LocalTime getEndTime() { return endTime; }
+    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
 
     public boolean isAgendaEvent() { return agendaEvent; }
     public void setAgendaEvent(boolean agendaEvent) { this.agendaEvent = agendaEvent; }
