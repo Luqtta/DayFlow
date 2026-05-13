@@ -333,6 +333,7 @@ public class TaskService {
         User user = userService.findByEmail(email);
         Task task = taskRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new RuntimeException("Tarefa não encontrada!"));
+        taskCompletionRepository.deleteAll(taskCompletionRepository.findByTaskId(id));
         taskRepository.delete(task);
     }
 }

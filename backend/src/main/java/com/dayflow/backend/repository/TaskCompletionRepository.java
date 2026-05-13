@@ -12,5 +12,6 @@ import java.util.Optional;
 public interface TaskCompletionRepository extends JpaRepository<TaskCompletion, Long> {
     Optional<TaskCompletion> findByTaskIdAndCompletedDate(Long taskId, LocalDate completedDate);
     List<TaskCompletion> findByTaskIdInAndCompletedDate(List<Long> taskIds, LocalDate completedDate);
+    List<TaskCompletion> findByTaskId(Long taskId);
     List<TaskCompletion> findByTaskUserIdAndCompletedDateBetween(Long userId, LocalDate start, LocalDate end);
 }
