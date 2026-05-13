@@ -4,6 +4,7 @@ import com.dayflow.backend.dto.RoutineRequest;
 import com.dayflow.backend.model.Routine;
 import com.dayflow.backend.model.User;
 import com.dayflow.backend.repository.RoutineRepository;
+import com.dayflow.backend.repository.TaskCompletionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,9 @@ public class RoutineService {
 
     @Autowired
     private RoutineRepository routineRepository;
+
+    @Autowired
+    private TaskCompletionRepository taskCompletionRepository;
 
     @Autowired
     private UserService userService;
@@ -51,6 +55,7 @@ public class RoutineService {
 
     public void delete(Long id, String email) {
         Routine routine = findById(id, email);
+        taskCompletionRepository.deleteAll(taskCompletionRepository.findByTaskRoutineId(id));
         routineRepository.delete(routine);
     }
 }
