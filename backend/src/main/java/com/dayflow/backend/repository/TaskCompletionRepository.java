@@ -15,4 +15,7 @@ public interface TaskCompletionRepository extends JpaRepository<TaskCompletion, 
     List<TaskCompletion> findByTaskId(Long taskId);
     List<TaskCompletion> findByTaskRoutineId(Long routineId);
     List<TaskCompletion> findByTaskUserIdAndCompletedDateBetween(Long userId, LocalDate start, LocalDate end);
+
+    // Batch load para o ranking (todas as completions da janela, em uma query)
+    List<TaskCompletion> findByTaskUserIdInAndCompletedDateBetween(List<Long> userIds, LocalDate start, LocalDate end);
 }

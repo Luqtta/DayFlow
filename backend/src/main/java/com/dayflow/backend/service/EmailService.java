@@ -1,6 +1,7 @@
 package com.dayflow.backend.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -10,6 +11,9 @@ import java.net.http.HttpResponse;
 
 @Service
 public class EmailService {
+
+    // HttpClient e thread-safe e caro de criar: uma unica instancia reaproveita o pool de conexoes
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
     @Value("${brevo.api-key}")
     private String apiKey;
@@ -38,7 +42,7 @@ public class EmailService {
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
-            var resp = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+            var resp = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
             System.out.println("Brevo status: " + resp.statusCode());
             System.out.println("Brevo body: " + resp.body());
 
@@ -47,6 +51,7 @@ public class EmailService {
         }
     }
 
+    @Async("emailExecutor")
     public void sendVerificationCode(String to, String name, String code) {
         String html = "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f0a1e;padding:40px;border-radius:16px'>" +
             "<h1 style='color:#a855f7;font-size:28px;margin-bottom:8px'>DayFlow</h1>" +
@@ -62,6 +67,7 @@ public class EmailService {
         sendEmail(to, "Verifique sua conta DayFlow 🌊", html);
     }
 
+    @Async("emailExecutor")
     public void sendPasswordResetCode(String to, String name, String code) {
         String html = "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f0a1e;padding:40px;border-radius:16px'>" +
             "<h1 style='color:#a855f7;font-size:28px;margin-bottom:8px'>DayFlow</h1>" +
@@ -77,6 +83,7 @@ public class EmailService {
         sendEmail(to, "Redefinir senha — DayFlow", html);
     }
 
+    @Async("emailExecutor")
     public void sendWelcome(String to, String name) {
         String html = "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f0a1e;padding:40px;border-radius:16px'>" +
             "<h1 style='color:#a855f7;font-size:28px;margin-bottom:8px'>DayFlow 🌊</h1>" +
@@ -93,6 +100,7 @@ public class EmailService {
         sendEmail(to, "Bem-vindo ao DayFlow! 🌊", html);
     }
 
+    @Async("emailExecutor")
     public void sendPasswordChangeAlert(String to, String name) {
         String html = "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f0a1e;padding:40px;border-radius:16px'>" +
             "<h1 style='color:#a855f7;font-size:28px;margin-bottom:8px'>DayFlow</h1>" +
@@ -107,6 +115,7 @@ public class EmailService {
         sendEmail(to, "Sua senha foi alterada — DayFlow", html);
     }
 
+    @Async("emailExecutor")
     public void sendNameChangeAlert(String to, String oldName, String newName) {
         String html = "<div style='font-family:sans-serif;max-width:480px;margin:0 auto;background:#0f0a1e;padding:40px;border-radius:16px'>" +
             "<h1 style='color:#a855f7;font-size:28px;margin-bottom:8px'>DayFlow</h1>" +

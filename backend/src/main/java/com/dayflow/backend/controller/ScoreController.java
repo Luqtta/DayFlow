@@ -37,8 +37,15 @@ public class ScoreController {
     }
 
     @GetMapping("/ranking")
-    public ResponseEntity<List<Map<String, Object>>> getRanking() {
-        return ResponseEntity.ok(scoreService.getRanking());
+    public ResponseEntity<List<Map<String, Object>>> getRanking(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "0") int size) {
+        if (userDetails == null) {
+            return ResponseEntity.status(401).build();
+        }
+        // size <= 0 retorna o ranking completo (default, mantem o frontend atual funcionando)
+        return ResponseEntity.ok(scoreService.getRanking(page, size));
     }
 
     @GetMapping("/history")

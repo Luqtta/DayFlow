@@ -48,13 +48,6 @@ public class TaskService {
                 .toLocalDate();
     }
 
-    private LocalDate createdAtToBrasiliaDate(LocalDateTime createdAt) {
-        if (createdAt == null) return null;
-        return createdAt.atZone(UTC)
-                .withZoneSameInstant(BRASILIA)
-                .toLocalDate();
-    }
-
     private LocalDate todayBrasilia() {
         return LocalDate.now(BRASILIA);
     }
@@ -75,26 +68,6 @@ public class TaskService {
         List<Integer> sorted = new ArrayList<>(unique);
         Collections.sort(sorted);
         return sorted.stream().map(String::valueOf).collect(Collectors.joining(","));
-    }
-
-    private Set<Integer> parseRecurrenceDays(String raw) {
-        if (raw == null || raw.trim().isEmpty()) return Collections.emptySet();
-        Set<Integer> result = new HashSet<>();
-        for (String part : raw.split(",")) {
-            try {
-                int day = Integer.parseInt(part.trim());
-                if (day >= 1 && day <= 7) result.add(day);
-            } catch (NumberFormatException ignored) {
-                // ignore invalid values
-            }
-        }
-        return result;
-    }
-
-    private boolean matchesRecurrenceDay(Task task, LocalDate date) {
-        if (task.getRecurrenceDays() == null || task.getRecurrenceDays().trim().isEmpty()) return false;
-        int day = date.getDayOfWeek().getValue();
-        return parseRecurrenceDays(task.getRecurrenceDays()).contains(day);
     }
 
     private void resetIfCompletedOnAnotherDay(Task task, LocalDate today) {
@@ -125,26 +98,6 @@ public class TaskService {
         if (dueTime != null && endTime != null && !endTime.isAfter(dueTime)) {
             throw new RuntimeException("O horário de fim deve ser maior que o horário de início!");
         }
-    }
-
-    private boolean isOnOrAfterCreation(Task task, LocalDate date) {
-        LocalDate createdDate = createdAtToBrasiliaDate(task.getCreatedAt());
-        if (createdDate == null) return true;
-        return !date.isBefore(createdDate);
-    }
-
-    private boolean isScheduledOnDate(Task task, LocalDate date) {
-        if (!isOnOrAfterCreation(task, date)) return false;
-        if (task.getDueDate() != null) return task.getDueDate().equals(date);
-        if (task.isRecurrent()) return true;
-
-        String recurrenceDays = task.getRecurrenceDays();
-        if (recurrenceDays != null && !recurrenceDays.trim().isEmpty()) {
-            return matchesRecurrenceDay(task, date);
-        }
-
-        // Fallback para tarefas de rotina sem dias definidos (evita "sumir")
-        return !task.isAgendaEvent();
     }
 
     private Set<Long> completedTaskIdsForDate(List<Task> tasks, LocalDate date) {
@@ -211,9 +164,18 @@ public class TaskService {
 
     public List<Task> findByDate(String email, LocalDate date, LocalDate today) {
         User user = userService.findByEmail(email);
-        List<Task> scheduled = taskRepository.findByUserId(user.getId()).stream()
-                .filter(task -> isScheduledOnDate(task, date))
-                .collect(Collectors.toList());
+
+        // Filtro de recorrencia/data feito no banco (JPQL) em vez de carregar todas as tarefas.
+        // dayOfWeek: 1=segunda ... 7=domingo (mesma convencao de matchesRecurrenceDay).
+        // creationCutoff: inicio do dia seguinte em Brasilia, convertido para UTC, garantindo
+        // que a tarefa so apareca a partir da sua data de criacao (isOnOrAfterCreation).
+        String dayOfWeek = String.valueOf(date.getDayOfWeek().getValue());
+        LocalDateTime creationCutoff = date.plusDays(1)
+                .atStartOfDay(BRASILIA)
+                .withZoneSameInstant(UTC)
+                .toLocalDateTime();
+        List<Task> scheduled = new ArrayList<>(
+                taskRepository.findScheduledOnDate(user.getId(), date, dayOfWeek, creationCutoff));
 
         if (date.equals(today)) {
             scheduled.stream()

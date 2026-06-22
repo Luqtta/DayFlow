@@ -78,6 +78,24 @@ A API estará disponível em `https://dayflow-production-724d.up.railway.app`
 | GET | `/score/me` | Score do usuário |
 | GET | `/score/ranking` | Ranking global |
 
+## ⚙️ Configuração de produção (Railway)
+
+A JVM, sem flags, limita o heap a ~25% da RAM do container (`MaxRAMPercentage` padrão),
+desperdiçando memória disponível e arriscando `OutOfMemoryError` sob carga. Defina a
+variável de ambiente abaixo no painel do Railway (**Service → Variables**) — ela é lida
+automaticamente pela JVM no startup, sem alterar o comando de start:
+
+```
+JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError
+```
+
+- `-XX:MaxRAMPercentage=75` — usa até 75% da RAM do container como heap.
+- `-XX:+UseG1GC` — coletor G1 (melhor para heaps maiores e pausas previsíveis).
+- `-XX:+HeapDumpOnOutOfMemoryError` — gera heap dump em caso de OOM, facilitando o diagnóstico.
+
+> ⚠️ Este passo é manual no dashboard do Railway (variáveis de runtime não são commitadas
+> no repositório). Após adicionar, faça um redeploy do serviço.
+
 ## 👨‍💻 Desenvolvido por
 
 **Lucas** — [@Luqtta](https://github.com/Luqtta)

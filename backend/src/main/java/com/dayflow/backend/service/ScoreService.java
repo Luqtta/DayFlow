@@ -14,12 +14,14 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class ScoreService {
@@ -134,7 +136,14 @@ public class ScoreService {
         return first;
     }
 
-    private Map<LocalDate, DayStats> buildDailyStatsRange(Long userId, LocalDate start, LocalDate end, List<Task> tasks) {
+    /**
+     * Nucleo do calculo de estatisticas diarias. Trabalha sobre dados ja carregados
+     * (tasks + completions), sem tocar no banco — assim o ranking pode reaproveitar
+     * com dados em lote e eliminar o N+1.
+     */
+    private Map<LocalDate, DayStats> computeDailyStats(List<Task> tasks,
+                                                       List<TaskCompletion> completions,
+                                                       LocalDate start, LocalDate end) {
         Map<LocalDate, DayStats> stats = new LinkedHashMap<>();
         LocalDate cursor = start;
         while (!cursor.isAfter(end)) {
@@ -150,8 +159,6 @@ public class ScoreService {
             }
         }
 
-        List<TaskCompletion> completions = taskCompletionRepository
-                .findByTaskUserIdAndCompletedDateBetween(userId, start, end);
         Set<String> completionKeys = new HashSet<>();
         for (TaskCompletion completion : completions) {
             LocalDate date = completion.getCompletedDate();
@@ -181,63 +188,29 @@ public class ScoreService {
         return stats;
     }
 
+    private Map<LocalDate, DayStats> buildDailyStatsRange(Long userId, LocalDate start, LocalDate end, List<Task> tasks) {
+        List<TaskCompletion> completions = taskCompletionRepository
+                .findByTaskUserIdAndCompletedDateBetween(userId, start, end);
+        return computeDailyStats(tasks, completions, start, end);
+    }
+
     private Map<LocalDate, DayStats> buildDailyStats(Long userId, int days) {
         int safeDays = Math.max(1, days);
         LocalDate today = todayBrasilia();
         LocalDate start = today.minusDays(safeDays - 1);
 
-        Map<LocalDate, DayStats> stats = new LinkedHashMap<>();
-        LocalDate cursor = start;
-        while (!cursor.isAfter(today)) {
-            stats.put(cursor, new DayStats());
-            cursor = cursor.plusDays(1);
-        }
-
         List<Task> tasks = taskRepository.findByUserId(userId);
-        if (tasks.isEmpty()) return stats;
-
-        for (Map.Entry<LocalDate, DayStats> entry : stats.entrySet()) {
-            LocalDate date = entry.getKey();
-            DayStats day = entry.getValue();
-            for (Task task : tasks) {
-                if (isScheduledOnDate(task, date)) day.total++;
-            }
-        }
-
         List<TaskCompletion> completions = taskCompletionRepository
                 .findByTaskUserIdAndCompletedDateBetween(userId, start, today);
-        Set<String> completionKeys = new HashSet<>();
-        for (TaskCompletion completion : completions) {
-            LocalDate date = completion.getCompletedDate();
-            Task task = completion.getTask();
-            completionKeys.add(task.getId() + "|" + date);
-
-            DayStats day = stats.get(date);
-            if (day != null && isScheduledOnDate(task, date)) {
-                day.completed++;
-            }
-        }
-
-        // Legacy fallback for old completions (before task_completions table)
-        for (Task task : tasks) {
-            LocalDate legacyDate = toBrasiliaDate(task.getCompletedAt());
-            if (legacyDate == null) continue;
-            if (legacyDate.isBefore(start) || legacyDate.isAfter(today)) continue;
-            String key = task.getId() + "|" + legacyDate;
-            if (completionKeys.contains(key)) continue;
-
-            DayStats day = stats.get(legacyDate);
-            if (day != null && isScheduledOnDate(task, legacyDate)) {
-                day.completed++;
-            }
-        }
-
-        return stats;
+        return computeDailyStats(tasks, completions, start, today);
     }
 
     public Map<String, Object> calculateScore(Long userId) {
-        Map<LocalDate, DayStats> stats = buildDailyStats(userId, WINDOW_DAYS);
+        return scoreFromStats(buildDailyStats(userId, WINDOW_DAYS));
+    }
 
+    // Mesma formula de pontuacao, mas a partir de stats ja calculadas (reaproveitado pelo ranking)
+    private Map<String, Object> scoreFromStats(Map<LocalDate, DayStats> stats) {
         int totalTasks = stats.values().stream().mapToInt(s -> s.total).sum();
         int completedTasks = stats.values().stream().mapToInt(s -> s.completed).sum();
         int activeDays = (int) stats.values().stream().filter(s -> s.total > 0).count();
@@ -292,28 +265,6 @@ public class ScoreService {
         return result;
     }
 
-    public List<DailyProgress> getHistory(Long userId) {
-        List<Task> tasks = taskRepository.findByUserId(userId);
-        if (tasks.isEmpty()) return new ArrayList<>();
-
-        LocalDate today = todayBrasilia();
-        LocalDate start = computeHistoryStart(tasks, today);
-        if (start == null) return new ArrayList<>();
-
-        Map<LocalDate, DayStats> stats = buildDailyStatsRange(userId, start, today, tasks);
-        List<DailyProgress> result = new ArrayList<>();
-
-        for (Map.Entry<LocalDate, DayStats> entry : stats.entrySet()) {
-            DayStats day = entry.getValue();
-            if (day.total == 0) continue;
-            int percentage = (int) Math.round(((double) day.completed / day.total) * 100);
-            result.add(new DailyProgress(entry.getKey(), day.total, day.completed, percentage));
-        }
-
-        result.sort((a, b) -> b.getDate().compareTo(a.getDate()));
-        return result;
-    }
-
     /**
      * Returns exactly 7 DailyProgress entries for the week window defined by weekOffset.
      * weekOffset=0 → last 7 days (today-6 to today)
@@ -339,28 +290,77 @@ public class ScoreService {
         return result;
     }
 
+    /**
+     * Paginacao por janela de calendario direto no banco: cada pagina carrega apenas
+     * as completions da sua janela (safeSize dias), em vez de computar todo o historico
+     * e fatiar com subList. page=0 = ultimos safeSize dias, page=1 = janela anterior, etc.
+     */
     public HistoryPage getHistoryPage(Long userId, int page, int size) {
         int safePage = Math.max(0, page);
         int safeSize = Math.max(1, size);
+        LocalDate today = todayBrasilia();
 
-        List<DailyProgress> all = getHistory(userId);
-        int total = all.size();
-        int from = safePage * safeSize;
-        if (from >= total) {
-            return new HistoryPage(new ArrayList<>(), safePage, safeSize, total, false);
+        List<Task> tasks = taskRepository.findByUserId(userId);
+        if (tasks.isEmpty()) {
+            return new HistoryPage(new ArrayList<>(), safePage, safeSize, 0, false);
         }
-        int to = Math.min(from + safeSize, total);
-        List<DailyProgress> items = all.subList(from, to);
-        boolean hasMore = to < total;
+
+        LocalDate windowEnd = today.minusDays((long) safePage * safeSize);
+        LocalDate windowStart = windowEnd.minusDays(safeSize - 1L);
+
+        // Carrega do banco apenas as completions desta janela (query paginada por data)
+        List<TaskCompletion> completions = taskCompletionRepository
+                .findByTaskUserIdAndCompletedDateBetween(userId, windowStart, windowEnd);
+        Map<LocalDate, DayStats> stats = computeDailyStats(tasks, completions, windowStart, windowEnd);
+
+        List<DailyProgress> items = new ArrayList<>();
+        for (Map.Entry<LocalDate, DayStats> entry : stats.entrySet()) {
+            DayStats day = entry.getValue();
+            if (day.total == 0) continue;
+            int percentage = (int) Math.round(((double) day.completed / day.total) * 100);
+            items.add(new DailyProgress(entry.getKey(), day.total, day.completed, percentage));
+        }
+        items.sort((a, b) -> b.getDate().compareTo(a.getDate()));
+
+        LocalDate historyStart = computeHistoryStart(tasks, today);
+        boolean hasMore = historyStart != null && historyStart.isBefore(windowStart);
+        int total = historyStart == null ? 0 : (int) (ChronoUnit.DAYS.between(historyStart, today) + 1);
+
         return new HistoryPage(items, safePage, safeSize, total, hasMore);
     }
 
-    public List<Map<String, Object>> getRanking() {
+    /**
+     * Ranking global. Carrega tasks e completions de TODOS os usuarios em lote (3 queries
+     * no total) em vez do antigo loop O(usuarios x tasks x 30 dias) com N+1 por usuario.
+     * Paginacao opt-in: size <= 0 retorna a lista completa (o Dashboard precisa do ranking
+     * inteiro para localizar a posicao do usuario logado por email).
+     */
+    public List<Map<String, Object>> getRanking(int page, int size) {
         List<User> users = userRepository.findAll();
-        List<Map<String, Object>> ranking = new ArrayList<>();
+        if (users.isEmpty()) return new ArrayList<>();
 
+        List<Long> userIds = users.stream().map(User::getId).toList();
+        LocalDate today = todayBrasilia();
+        LocalDate start = today.minusDays(WINDOW_DAYS - 1L);
+
+        List<Task> allTasks = taskRepository.findByUserIdIn(userIds);
+        List<TaskCompletion> allCompletions = taskCompletionRepository
+                .findByTaskUserIdInAndCompletedDateBetween(userIds, start, today);
+
+        Map<Long, List<Task>> tasksByUser = allTasks.stream()
+                .collect(Collectors.groupingBy(t -> t.getUser().getId()));
+        Map<Long, Long> taskToUser = allTasks.stream()
+                .collect(Collectors.toMap(Task::getId, t -> t.getUser().getId()));
+        Map<Long, List<TaskCompletion>> completionsByUser = allCompletions.stream()
+                .collect(Collectors.groupingBy(c -> taskToUser.getOrDefault(c.getTask().getId(), -1L)));
+
+        List<Map<String, Object>> ranking = new ArrayList<>();
         for (User user : users) {
-            Map<String, Object> score = calculateScore(user.getId());
+            List<Task> userTasks = tasksByUser.getOrDefault(user.getId(), List.of());
+            List<TaskCompletion> userCompletions = completionsByUser.getOrDefault(user.getId(), List.of());
+            Map<LocalDate, DayStats> stats = computeDailyStats(userTasks, userCompletions, start, today);
+
+            Map<String, Object> score = scoreFromStats(stats);
             score.put("name", user.getName());
             score.put("email", user.getEmail());
             score.put("avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "");
@@ -368,11 +368,16 @@ public class ScoreService {
         }
 
         ranking.sort((a, b) -> (int) b.get("score") - (int) a.get("score"));
-
         for (int i = 0; i < ranking.size(); i++) {
             ranking.get(i).put("position", i + 1);
         }
 
-        return ranking;
+        // size <= 0 => sem paginacao (compatibilidade com o frontend atual)
+        if (size <= 0) return ranking;
+        int safePage = Math.max(0, page);
+        int from = safePage * size;
+        if (from >= ranking.size()) return new ArrayList<>();
+        int to = Math.min(from + size, ranking.size());
+        return new ArrayList<>(ranking.subList(from, to));
     }
 }

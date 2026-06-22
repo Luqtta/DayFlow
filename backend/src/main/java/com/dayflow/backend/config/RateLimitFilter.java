@@ -7,17 +7,26 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private final Map<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
-    private final Map<String, LocalDateTime> windowStart = new ConcurrentHashMap<>();
+    // Caffeine com expireAfterWrite evita o crescimento ilimitado por IP:path
+    private final ConcurrentMap<String, AtomicInteger> requestCounts = Caffeine.newBuilder()
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .<String, AtomicInteger>build()
+            .asMap();
+    private final ConcurrentMap<String, LocalDateTime> windowStart = Caffeine.newBuilder()
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .<String, LocalDateTime>build()
+            .asMap();
 
     private static final int MAX_REQUESTS = 30;
     private static final int WINDOW_SECONDS = 60;

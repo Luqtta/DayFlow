@@ -9,11 +9,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -31,9 +33,15 @@ public class UserService {
     @Autowired
     private EmailService emailService;
 
-    // Rate limiting — tentativas de login por email
-    private final Map<String, AtomicInteger> loginAttempts = new ConcurrentHashMap<>();
-    private final Map<String, LocalDateTime> loginBlockedUntil = new ConcurrentHashMap<>();
+    // Rate limiting — tentativas de login por email (Caffeine com TTL evita leak de memoria)
+    private final ConcurrentMap<String, AtomicInteger> loginAttempts = Caffeine.newBuilder()
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .<String, AtomicInteger>build()
+            .asMap();
+    private final ConcurrentMap<String, LocalDateTime> loginBlockedUntil = Caffeine.newBuilder()
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .<String, LocalDateTime>build()
+            .asMap();
 
     private static final int MAX_LOGIN_ATTEMPTS = 5;
     private static final int BLOCK_MINUTES = 15;
