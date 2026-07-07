@@ -80,21 +80,22 @@ A API estará disponível em `https://dayflow-production-724d.up.railway.app`
 
 ## ⚙️ Configuração de produção (Railway)
 
-A JVM, sem flags, limita o heap a ~25% da RAM do container (`MaxRAMPercentage` padrão),
-desperdiçando memória disponível e arriscando `OutOfMemoryError` sob carga. Defina a
-variável de ambiente abaixo no painel do Railway (**Service → Variables**) — ela é lida
-automaticamente pela JVM no startup, sem alterar o comando de start:
+No Railway a JVM "enxerga" a RAM do container (plano até 8 GB) e, por padrão, dimensiona
+o heap em ~25% disso → ~2 GB de heap parado, e o billing é por GB de RAM usada. Para um
+app pequeno isso custa caro à toa. **Cape o heap em valor absoluto** (não em porcentagem)
+no painel do Railway (**Service → Variables**):
 
 ```
-JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError
+JAVA_TOOL_OPTIONS=-Xmx384m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC
 ```
 
-- `-XX:MaxRAMPercentage=75` — usa até 75% da RAM do container como heap.
-- `-XX:+UseG1GC` — coletor G1 (melhor para heaps maiores e pausas previsíveis).
-- `-XX:+HeapDumpOnOutOfMemoryError` — gera heap dump em caso de OOM, facilitando o diagnóstico.
+- `-Xmx384m` — heap fixo e pequeno, independente do tamanho do container. Suficiente para o tráfego atual; suba para `-Xmx512m` se ocorrer `OutOfMemoryError`.
+- `-XX:+UseSerialGC` — menor footprint de memória que o G1 para apps pequenos.
+- `-XX:MaxMetaspaceSize=128m` — limita o metaspace.
 
-> ⚠️ Este passo é manual no dashboard do Railway (variáveis de runtime não são commitadas
-> no repositório). Após adicionar, faça um redeploy do serviço.
+Reduz o RSS de ~1.2–2.4 GB para ~0.4–0.5 GB (≈3–5x mais barato no Railway).
+
+> ⚠️ Passo manual no dashboard (variáveis de runtime não vão no repositório). Após alterar, faça redeploy.
 
 ## 👨‍💻 Desenvolvido por
 
