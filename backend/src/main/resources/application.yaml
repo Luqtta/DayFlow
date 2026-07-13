@@ -7,18 +7,28 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      # ponytail: app pequeno — 5 conexoes bastam; default 10 mantem processos ociosos no Postgres (RAM cobrada)
+      maximum-pool-size: 5
+      minimum-idle: 1
+      idle-timeout: 120000
 
   jpa:
     hibernate:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
-    show-sql: true
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+        format_sql: false
 
 server:
   port: 8080
+  tomcat:
+    # ponytail: default de 200 threads reserva stack a toa; 25 cobre esse trafego
+    threads:
+      max: 25
+      min-spare: 2
 
 brevo:
   api-key: ${BREVO_API_KEY}
